@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "@/app/actions/login";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -18,14 +17,28 @@ export default function LoginPage() {
         setError("");
         setLoading(true);
 
-        // The server action will either:
-        //  - Return { error } on bad credentials  →  show inline error
-        //  - Throw NEXT_REDIRECT on success       →  Next.js redirects to /dashboard
-        const result = await login(formData);
+        try {
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
 
-        // Only reaches here on a validation/auth failure (no redirect thrown)
-        if (result?.error) {
-            setError(result.error);
+            const result = await response.json();
+
+            if (!response.ok) {
+                setError(result.error || "Authentication failed");
+                setLoading(false);
+            } else {
+                // Success - redirect to dashboard
+                // Since session is set, we can just push to /dashboard
+                window.location.href = "/dashboard";
+            }
+        } catch (error) {
+            console.error("Login fetch error:", error);
+            setError("Something went wrong. Please check your connection.");
             setLoading(false);
         }
     };

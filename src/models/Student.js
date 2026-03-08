@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 const StudentSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    universityId: { type: String, required: true, unique: true }, // Ensure unique universityId across roles should be handled at business logic level too.
+    universityId: { type: String, required: true, unique: true },
+    universityEmail: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     status: { type: String, enum: ["ACTIVE", "BLOCKED"], default: "ACTIVE" },
     approvedSports: { type: [String], default: [] },

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { register } from "@/app/actions/register";
 import Link from "next/link";
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
         name: "",
         universityId: "",
+        universityEmail: "",
         password: "",
         confirmPassword: "",
     });
@@ -27,17 +27,31 @@ export default function RegisterPage() {
         setSuccess("");
         setLoading(true);
 
-        const result = await register(formData);
+        try {
+            const response = await fetch("/api/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
 
-        if (result.error) {
-            setError(result.error);
+            const result = await response.json();
+
+            if (!response.ok) {
+                setError(result.error || "Registration failed");
+                setLoading(false);
+            } else {
+                setSuccess("Account created successfully! Redirecting to login...");
+                setLoading(false);
+                setTimeout(() => {
+                    router.push("/login");
+                }, 2000);
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+            setError("Something went wrong. Please check your connection.");
             setLoading(false);
-        } else {
-            setSuccess("Account created successfully! Redirecting to login...");
-            setLoading(false);
-            setTimeout(() => {
-                router.push("/login");
-            }, 2000);
         }
     };
 
@@ -89,6 +103,19 @@ export default function RegisterPage() {
                                 className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1"
                                 placeholder="Ex: UWU/IIT/21/001"
                                 value={formData.universityId}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="universityEmail" className="block text-sm font-medium text-gray-700">University Email</label>
+                            <input
+                                id="universityEmail"
+                                name="universityEmail"
+                                type="email"
+                                required
+                                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1"
+                                placeholder="Ex: john@uwu.ac.lk"
+                                value={formData.universityEmail}
                                 onChange={handleChange}
                             />
                         </div>
