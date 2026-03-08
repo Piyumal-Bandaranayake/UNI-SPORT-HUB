@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createCoach } from "@/app/actions/coach";
 
 export default function CreateCoachForm({ onSuccess }) {
     const [formData, setFormData] = useState({
@@ -24,15 +23,29 @@ export default function CreateCoachForm({ onSuccess }) {
         setSuccess("");
         setLoading(true);
 
-        const result = await createCoach(formData);
-        setLoading(false);
+        try {
+            const response = await fetch("/api/admin/coaches", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
 
-        if (result.error) {
-            setError(result.error);
-        } else {
-            setSuccess(result.success);
-            setFormData({ name: "", universityId: "", password: "", confirmPassword: "" });
-            if (onSuccess) onSuccess();
+            const result = await response.json();
+            setLoading(false);
+
+            if (!response.ok) {
+                setError(result.error || "Failed to create coach");
+            } else {
+                setSuccess(result.success);
+                setFormData({ name: "", universityId: "", password: "", confirmPassword: "" });
+                if (onSuccess) onSuccess();
+            }
+        } catch (error) {
+            console.error("Create coach error:", error);
+            setError("Something went wrong. Please check your connection.");
+            setLoading(false);
         }
     };
 

@@ -4,8 +4,6 @@ import { useState, useEffect, useTransition } from "react";
 import { useSession } from "next-auth/react";
 import CreateSubAdminForm from "@/components/CreateSubAdminForm";
 import CreateCoachForm from "@/components/CreateCoachForm";
-import { getSubAdmins } from "@/app/actions/subAdmin";
-import { getCoaches } from "@/app/actions/coach";
 
 const TABS = ["Overview", "Sub-Admins", "Coaches"];
 
@@ -19,9 +17,22 @@ export default function AdminDashboard() {
 
     const fetchAll = () => {
         startTransition(async () => {
-            const [saData, coachData] = await Promise.all([getSubAdmins(), getCoaches()]);
-            setSubAdmins(saData);
-            setCoaches(coachData);
+            try {
+                const [saRes, coachRes] = await Promise.all([
+                    fetch("/api/admin/sub-admins"),
+                    fetch("/api/admin/coaches")
+                ]);
+
+                if (!saRes.ok || !coachRes.ok) throw new Error("Failed to fetch data");
+
+                const saData = await saRes.json();
+                const coachData = await coachRes.json();
+
+                setSubAdmins(saData);
+                setCoaches(coachData);
+            } catch (error) {
+                console.error("Error fetching admin data:", error);
+            }
         });
     };
 
@@ -67,8 +78,8 @@ export default function AdminDashboard() {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab
-                                    ? "bg-indigo-600 text-white shadow-sm"
-                                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                ? "bg-indigo-600 text-white shadow-sm"
+                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                 }`}
                         >
                             {tab}
