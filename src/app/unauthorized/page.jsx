@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function UnauthorizedPage() {
     return (
-        <div className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center bg-gray-50 px-4 text-center">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 pt-24 text-center">
             <div className="rounded-xl bg-white p-12 shadow-md">
                 <h1 className="text-4xl font-bold text-red-600">403 - Forbidden</h1>
                 <p className="mt-4 text-lg text-gray-700">You do not have permission to access this page.</p>

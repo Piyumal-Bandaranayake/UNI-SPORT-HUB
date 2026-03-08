@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import SessionWrapper from "@/components/SessionWrapper";
 
 const geistSans = Geist({
@@ -20,15 +21,17 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
+        suppressHydrationWarning
       >
         <SessionWrapper>
           <Navbar />
-          <main className="min-h-[calc(100vh-64px)] overflow-x-hidden">
+          <main className="overflow-x-hidden">
             {children}
           </main>
+          <Footer />
         </SessionWrapper>
       </body>
     </html>
