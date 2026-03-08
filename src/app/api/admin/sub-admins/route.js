@@ -57,13 +57,14 @@ export async function GET() {
         }
 
         await dbConnect();
-        const subAdmins = await SubAdmin.find({}, "name universityId status createdAt").lean();
+        const subAdmins = await SubAdmin.find({}, "name universityId status managedSports createdAt").lean();
 
         const formatted = subAdmins.map((s) => ({
             id: s._id.toString(),
             name: s.name,
             universityId: s.universityId,
             status: s.status,
+            managedSports: s.managedSports || [],
             createdAt: s.createdAt.toISOString(),
         }));
 
@@ -71,5 +72,31 @@ export async function GET() {
     } catch (err) {
         console.error("getSubAdmins API error:", err);
         return NextResponse.json({ error: "Failed to fetch sub-admins" }, { status: 500 });
+    }
+}
+
+export async function DELETE(req) {
+    try {
+        const session = await auth();
+        if (!session || session.user.role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id } = await req.json();
+        if (!id) {
+            return NextResponse.json({ error: "ID is required" }, { status: 400 });
+        }
+
+        await dbConnect();
+        const deleted = await SubAdmin.findByIdAndDelete(id);
+
+        if (!deleted) {
+            return NextResponse.json({ error: "Sub-Admin not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: "Sub-Admin removed successfully" });
+    } catch (err) {
+        console.error("deleteSubAdmin API error:", err);
+        return NextResponse.json({ error: "Failed to delete sub-admin" }, { status: 500 });
     }
 }

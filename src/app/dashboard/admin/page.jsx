@@ -1,35 +1,55 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import CreateSubAdminForm from "@/components/CreateSubAdminForm";
 import CreateCoachForm from "@/components/CreateCoachForm";
+import CreateSportForm from "@/components/CreateSportForm";
+import AssignSportForm from "@/components/AssignSportForm";
+import EditStudentForm from "@/components/EditStudentForm";
 
-const TABS = ["Overview", "Sub-Admins", "Coaches"];
+const MENU_ITEMS = [
+    { id: "Overview", icon: "📊", label: "Dashboard" },
+    { id: "Sports", icon: "🏸", label: "Sports" },
+    { id: "Sub-Admins", icon: "👥", label: "Sub-Admins" },
+    { id: "Coaches", icon: "🧢", label: "Coaches" },
+    { id: "Students", icon: "🎓", label: "Students" },
+];
 
 export default function AdminDashboard() {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("Overview");
     const [subAdmins, setSubAdmins] = useState([]);
     const [coaches, setCoaches] = useState([]);
+    const [sports, setSports] = useState([]);
+    const [students, setStudents] = useState([]);
     const [showPanel, setShowPanel] = useState(false);
+    const [panelType, setPanelType] = useState(null);
+    const [editingUser, setEditingUser] = useState(null);
     const [isPending, startTransition] = useTransition();
 
     const fetchAll = () => {
         startTransition(async () => {
             try {
-                const [saRes, coachRes] = await Promise.all([
+                const [saRes, coachRes, sportRes, studentRes] = await Promise.all([
                     fetch("/api/admin/sub-admins"),
-                    fetch("/api/admin/coaches")
+                    fetch("/api/admin/coaches"),
+                    fetch("/api/admin/sports"),
+                    fetch("/api/admin/students")
                 ]);
 
-                if (!saRes.ok || !coachRes.ok) throw new Error("Failed to fetch data");
+                if (!saRes.ok || !coachRes.ok || !sportRes.ok || !studentRes.ok) throw new Error("Failed to fetch data");
 
                 const saData = await saRes.json();
                 const coachData = await coachRes.json();
+                const sportData = await sportRes.json();
+                const studentData = await studentRes.json();
 
                 setSubAdmins(saData);
                 setCoaches(coachData);
+                setSports(sportData);
+                setStudents(studentData);
             } catch (error) {
                 console.error("Error fetching admin data:", error);
             }
@@ -42,139 +62,303 @@ export default function AdminDashboard() {
 
     const handleSuccess = () => {
         setShowPanel(false);
+        setEditingUser(null);
         fetchAll();
     };
 
-    const panelTitle = activeTab === "Coaches" ? "Create Coach" : "Create Sub-Admin";
+    const handleAssign = (user) => {
+        setEditingUser(user);
+        setPanelType('ASSIGN');
+        setShowPanel(true);
+    };
+
+    const handleEditStudent = (student) => {
+        setEditingUser(student);
+        setPanelType('EDIT_STUDENT');
+        setShowPanel(true);
+    };
+
+    const handleDelete = async (type, id, name) => {
+        if (!confirm(`Are you sure you want to remove "${name}"? This action cannot be undone.`)) return;
+
+        let endpoint = "";
+        if (type === "SUB_ADMIN") endpoint = "/api/admin/sub-admins";
+        else if (type === "COACH") endpoint = "/api/admin/coaches";
+        else if (type === "SPORT") endpoint = "/api/admin/sports";
+        else if (type === "STUDENT") endpoint = "/api/admin/students";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id })
+            });
+
+            if (res.ok) {
+                fetchAll();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to delete");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Something went wrong");
+        }
+    };
+
+    const handleAddClick = () => {
+        setPanelType('CREATE');
+        setShowPanel(true);
+    };
+
+    const panelTitle = panelType === 'ASSIGN'
+        ? `Assign Sports to ${editingUser?.name}`
+        : panelType === 'EDIT_STUDENT'
+            ? `Edit Student: ${editingUser?.name}`
+            : activeTab === "Coaches" ? "Create Coach" : activeTab === "Sports" ? "Create Sport" : "Create Sub-Admin";
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Top Header Bar */}
-            <div className="border-b border-gray-200 bg-white px-6 py-5 md:px-8">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                        <p className="mt-0.5 text-sm text-gray-500">
-                            Logged in as{" "}
-                            <span className="font-semibold text-rose-600">{session?.user?.name}</span>{" "}
-                            <span className="font-mono text-xs text-gray-400">({session?.user?.universityId})</span>
-                        </p>
-                    </div>
-                    {activeTab !== "Overview" && (
-                        <button
-                            onClick={() => setShowPanel(true)}
-                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                            <span className="text-base leading-none">＋</span>{" "}
-                            {activeTab === "Coaches" ? "Add Coach" : "Add Sub-Admin"}
-                        </button>
-                    )}
+        <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
+            {/* Sidebar */}
+            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+                <div className="p-8">
+                    <Link href="/" className="flex items-center gap-2">
+                        <span className="text-2xl font-black tracking-tighter text-gray-900">
+                            Uni<span className="text-indigo-600">Sport</span>Hub
+                        </span>
+                    </Link>
                 </div>
 
-                {/* Tabs */}
-                <nav className="mt-5 flex gap-1">
-                    {TABS.map((tab) => (
+                <div className="px-6 space-y-2 flex-1">
+                    <button
+                        onClick={handleAddClick}
+                        className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-3 rounded-2xl transition-all group mb-8"
+                    >
+                        <span className="font-bold text-sm">Create New</span>
+                        <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-lg leading-none transition-transform group-hover:rotate-90">＋</span>
+                    </button>
+
+                    {MENU_ITEMS.map((item) => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab
-                                ? "bg-indigo-600 text-white shadow-sm"
-                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id
+                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
+                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                                 }`}
                         >
-                            {tab}
+                            <span className="text-lg">{item.icon}</span>
+                            {item.label}
                         </button>
                     ))}
-                </nav>
-            </div>
+                </div>
 
-            {/* Content */}
-            <div className="px-6 py-8 md:px-8">
-                {/* ─── OVERVIEW TAB ─── */}
-                {activeTab === "Overview" && (
-                    <div>
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                            <StatCard label="Total Sub-Admins" value={subAdmins.length} color="text-indigo-600" bg="bg-indigo-50" />
-                            <StatCard
-                                label="Active Sub-Admins"
-                                value={subAdmins.filter((s) => s.status === "ACTIVE").length}
-                                color="text-emerald-600"
-                                bg="bg-emerald-50"
-                            />
-                            <StatCard label="Total Coaches" value={coaches.length} color="text-amber-600" bg="bg-amber-50" />
-                            <StatCard
-                                label="Active Coaches"
-                                value={coaches.filter((c) => c.status === "ACTIVE").length}
-                                color="text-sky-600"
-                                bg="bg-sky-50"
-                            />
+                <div className="p-6 border-t border-gray-50 space-y-4">
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                    >
+                        <span className="text-lg">🚪</span>
+                        Sign Out
+                    </button>
+
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 ml-64 p-8">
+                {/* Top Header */}
+                <header className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-6">
+                        <div>
+                            <h1 className="text-2xl font-black text-gray-900">{activeTab}</h1>
+                            <p className="text-xs text-gray-400 font-medium mt-1">Monday, 02 March 2026</p>
                         </div>
-
-                        {/* Quick Action Cards */}
-                        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                            <div
-                                onClick={() => setActiveTab("Sub-Admins")}
-                                className="cursor-pointer rounded-xl border border-indigo-100 bg-white p-6 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all"
+                        {activeTab !== "Overview" && activeTab !== "Students" && activeTab !== "Home" && (
+                            <button
+                                onClick={handleAddClick}
+                                className="ml-4 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
                             >
-                                <h3 className="text-base font-semibold text-gray-800">Manage Sub-Admins</h3>
-                                <p className="mt-1 text-sm text-gray-500">View, create and manage sub-admin accounts.</p>
-                                <p className="mt-4 text-2xl font-bold text-indigo-600">{subAdmins.length} total</p>
+                                <span className="text-sm">＋</span>
+                                Add {activeTab === "Sub-Admins" ? "Sub-Admin" : activeTab === "Coaches" ? "Coach" : "Sport"}
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
+                        <button className="text-gray-400 hover:text-gray-900 transition-colors relative">
+                            🔔
+                            <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center font-black text-indigo-600">
+                                {session?.user?.name?.substring(0, 2).toUpperCase()}
                             </div>
-                            <div
-                                onClick={() => setActiveTab("Coaches")}
-                                className="cursor-pointer rounded-xl border border-emerald-100 bg-white p-6 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all"
+                            <div>
+                                <div className="text-sm font-bold text-gray-900">{session?.user?.name}</div>
+                                <div className="text-[10px] text-gray-400 font-medium">Administrator</div>
+                            </div>
+                            <button
+                                onClick={() => signOut()}
+                                className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
                             >
-                                <h3 className="text-base font-semibold text-gray-800">Manage Coaches</h3>
-                                <p className="mt-1 text-sm text-gray-500">View, create and manage coach accounts.</p>
-                                <p className="mt-4 text-2xl font-bold text-emerald-600">{coaches.length} total</p>
+                                🚪
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Banner Greeting */}
+                {activeTab === "Overview" && (
+                    <div className="relative mb-10 overflow-hidden rounded-[32px] bg-indigo-600 p-10 shadow-2xl shadow-indigo-100">
+                        {/* Abstract background blobs */}
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-indigo-400/20 rounded-full blur-2xl"></div>
+
+                        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                            <div className="max-w-md">
+                                <h2 className="text-4xl font-black text-white leading-tight">
+                                    Hi, {session?.user?.name?.split(' ')[0]}
+                                </h2>
+                                <p className="mt-4 text-indigo-100 font-medium">
+                                    Ready to manage your university sports hub? <br />
+                                    Check latest updates and new student requests below.
+                                </p>
+                            </div>
+                            <div className="hidden lg:block relative">
+                                <div className="w-56 h-40 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center">
+                                    <svg viewBox="0 0 100 100" className="w-32 h-32 opacity-80">
+                                        <path fill="white" d="M10,80 Q50,20 90,80 T90,80 Z" />
+                                        <circle cx="50" cy="40" r="10" fill="#EEF2FF" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* ─── SUB-ADMINS TAB ─── */}
-                {activeTab === "Sub-Admins" && (
-                    <AccountTable
-                        title="Sub-Admin Accounts"
-                        rows={subAdmins}
-                        isPending={isPending}
-                        emptyMessage='No sub-admins yet. Click "Add Sub-Admin" to create one.'
-                        accentColor="indigo"
-                    />
-                )}
+                {/* Tab content */}
+                <div className="space-y-10">
+                    {/* ─── OVERVIEW TAB ─── */}
+                    {activeTab === "Overview" && (
+                        <div>
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                                <StatCard label="Sports" value={sports.length} color="text-amber-700" bg="bg-[#FFF4E5]" icon="🏸" subText="83% Open Rate" />
+                                <StatCard label="Sub-Admins" value={subAdmins.length} color="text-indigo-700" bg="bg-[#EEF2FF]" icon="👥" subText="77% Complete" />
+                                <StatCard label="Coaches" value={coaches.length} color="text-rose-700" bg="bg-[#FFF1F2]" icon="🧢" subText="91 Unique Views" />
+                                <StatCard label="Students" value={students.length} color="text-purple-700" bg="bg-[#F3E8FF]" icon="🎓" subText="126 Total Views" />
+                            </div>
 
-                {/* ─── COACHES TAB ─── */}
-                {activeTab === "Coaches" && (
-                    <AccountTable
-                        title="Coach Accounts"
-                        rows={coaches}
-                        isPending={isPending}
-                        emptyMessage='No coaches yet. Click "Add Coach" to create one.'
-                        accentColor="emerald"
-                    />
-                )}
-            </div>
+                            <div className="mt-12">
+                                <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center justify-between">
+                                    Recent Activity
+                                    <button className="text-indigo-600 text-xs font-bold hover:underline">View All</button>
+                                </h3>
+                                <div className="space-y-4">
+                                    {sports.slice(0, 2).map((sport) => (
+                                        <div key={sport.id} className="bg-white p-6 rounded-[28px] flex items-center justify-between shadow-sm border border-gray-50 group hover:shadow-md transition-all">
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0">
+                                                    {sport.image ? (
+                                                        <img src={sport.image} alt={sport.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-gray-300 font-black text-2xl bg-indigo-50">
+                                                            {sport.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900">{sport.name}</h4>
+                                                    <p className="text-xs text-gray-400 mt-1 line-clamp-1 max-w-sm">{sport.description || "Active University sport department."}</p>
+                                                    <div className="mt-2 text-[10px] font-black text-indigo-600 uppercase tracking-widest">10 Categories</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-8">
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <div className="w-12 h-6 bg-indigo-600 rounded-full relative p-1 cursor-pointer">
+                                                        <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-gray-400">Public</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors">✏️</button>
+                                                    <button onClick={() => handleDelete("SPORT", sport.id, sport.name)} className="p-2 hover:bg-rose-50 rounded-lg text-rose-400 transition-colors">🗑️</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-            {/* ─── SLIDE-IN PANEL ─── */}
+                    {/* ─── SPORTS TAB ─── */}
+                    {activeTab === "Sports" && (
+                        <SportsTable
+                            rows={sports}
+                            isPending={isPending}
+                            onDelete={(id, name) => handleDelete("SPORT", id, name)}
+                        />
+                    )}
+
+                    {/* ─── SUB-ADMINS TAB ─── */}
+                    {activeTab === "Sub-Admins" && (
+                        <AccountTable
+                            title="Sub-Admin Accounts"
+                            rows={subAdmins}
+                            isPending={isPending}
+                            emptyMessage='No sub-admins yet. Click "Create New" to add one.'
+                            accentColor="indigo"
+                            onAssign={handleAssign}
+                            onDelete={(id, name) => handleDelete("SUB_ADMIN", id, name)}
+                            userType="SUB_ADMIN"
+                        />
+                    )}
+
+                    {/* ─── COACHES TAB ─── */}
+                    {activeTab === "Coaches" && (
+                        <AccountTable
+                            title="Coach Accounts"
+                            rows={coaches}
+                            isPending={isPending}
+                            emptyMessage='No coaches yet. Click "Create New" to add one.'
+                            accentColor="emerald"
+                            onAssign={handleAssign}
+                            onDelete={(id, name) => handleDelete("COACH", id, name)}
+                            userType="COACH"
+                        />
+                    )}
+
+                    {/* ─── STUDENTS TAB ─── */}
+                    {activeTab === "Students" && (
+                        <StudentsTable
+                            rows={students}
+                            isPending={isPending}
+                            onEdit={handleEditStudent}
+                            onDelete={(id, name) => handleDelete("STUDENT", id, name)}
+                        />
+                    )}
+                </div>
+            </main>
+
+            {/* Slide-in panel remains but updated for new UI */}
             {showPanel && (
                 <div className="fixed inset-0 z-50 flex">
-                    <div
-                        className="flex-1 bg-black/40 backdrop-blur-sm"
-                        onClick={() => setShowPanel(false)}
-                    />
-                    <div className="w-full max-w-md bg-white shadow-2xl flex flex-col">
-                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-                            <h2 className="text-lg font-semibold text-gray-900">{panelTitle}</h2>
-                            <button
-                                onClick={() => setShowPanel(false)}
-                                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                            >
-                                ✕
-                            </button>
+                    <div className="flex-1 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setShowPanel(false)} />
+                    <div className="w-full max-w-md bg-white shadow-2xl flex flex-col p-8 border-l border-gray-100">
+                        <div className="flex items-center justify-between mb-10">
+                            <h2 className="text-2xl font-black text-gray-900">{panelTitle}</h2>
+                            <button onClick={() => setShowPanel(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-colors">✕</button>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-6 py-6">
-                            {activeTab === "Coaches" ? (
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            {panelType === 'ASSIGN' ? (
+                                <AssignSportForm user={editingUser} userType={activeTab === "Coaches" ? "COACH" : "SUB_ADMIN"} allSports={sports} onSuccess={handleSuccess} />
+                            ) : panelType === 'EDIT_STUDENT' ? (
+                                <EditStudentForm student={editingUser} onSuccess={handleSuccess} />
+                            ) : activeTab === "Coaches" || panelType === 'CREATE_COACH' ? (
                                 <CreateCoachForm onSuccess={handleSuccess} />
+                            ) : activeTab === "Sports" || panelType === 'CREATE_SPORT' ? (
+                                <CreateSportForm onSuccess={handleSuccess} />
                             ) : (
                                 <CreateSubAdminForm onSuccess={handleSuccess} />
                             )}
@@ -188,60 +372,189 @@ export default function AdminDashboard() {
 
 /* ─── Reusable Sub-Components ─── */
 
-function StatCard({ label, value, color, bg }) {
+function StatCard({ label, value, color, bg, icon, subText }) {
     return (
-        <div className={`rounded-xl ${bg} border border-gray-100 p-6 shadow-sm`}>
-            <p className="text-sm font-medium text-gray-500">{label}</p>
-            <p className={`mt-2 text-3xl font-bold ${color}`}>{value}</p>
+        <div className={`rounded-[28px] ${bg} p-7 flex flex-col gap-4 shadow-sm border border-gray-50 transition-transform hover:-translate-y-1`}>
+            <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl">{icon}</div>
+                <div className={`text-3xl font-black ${color}`}>{value}</div>
+            </div>
+            <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</p>
+                <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase">{subText}</p>
+            </div>
         </div>
     );
 }
 
-function AccountTable({ title, rows, isPending, emptyMessage, accentColor }) {
+function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAssign, onDelete, userType }) {
     const badge = {
         ACTIVE: "bg-green-100 text-green-700",
         BLOCKED: "bg-red-100 text-red-700",
     };
 
     return (
-        <div>
-            <h2 className="mb-4 text-xl font-semibold text-gray-800">{title}</h2>
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                {isPending ? (
-                    <div className="flex items-center justify-center py-16 text-gray-400">Loading…</div>
-                ) : rows.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                        <p className="text-base">{emptyMessage}</p>
-                    </div>
-                ) : (
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+            <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">{title}</h2>
+            {isPending ? (
+                <div className="flex items-center justify-center py-20 text-gray-400 font-bold italic animate-pulse">Loading secure data…</div>
+            ) : rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-gray-400">
+                    <p className="font-bold">{emptyMessage}</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-100 text-sm">
-                        <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <thead className="bg-[#FAFBFD] rounded-xl overflow-hidden">
                             <tr>
-                                <th className="px-6 py-3 text-left">#</th>
-                                <th className="px-6 py-3 text-left">Name</th>
-                                <th className="px-6 py-3 text-left">University ID</th>
-                                <th className="px-6 py-3 text-left">Status</th>
-                                <th className="px-6 py-3 text-left">Created</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">#</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Name</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">ID</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Departments</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-50">
                             {rows.map((row, i) => (
-                                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-gray-400">{i + 1}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{row.name}</td>
-                                    <td className="px-6 py-4 font-mono text-gray-600">{row.universityId}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge[row.status] || ""}`}>
+                                <tr key={row.id} className="hover:bg-[#FAFBFD] transition-colors group">
+                                    <td className="px-6 py-5 text-gray-400 font-bold">{i + 1}</td>
+                                    <td className="px-6 py-5">
+                                        <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{row.name}</div>
+                                    </td>
+                                    <td className="px-6 py-5 font-mono text-xs text-gray-600 font-bold">{row.universityId}</td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex flex-wrap gap-1">
+                                            {(userType === "SUB_ADMIN" ? row.managedSports : row.assignedSports)?.length > 0 ? (
+                                                (userType === "SUB_ADMIN" ? row.managedSports : row.assignedSports).map(s => (
+                                                    <span key={s} className="bg-white border border-indigo-100 text-indigo-600 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">
+                                                        {s}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-gray-300 italic text-[10px]">None Assigned</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${badge[row.status] || ""}`}>
                                             {row.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500">{new Date(row.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex justify-center gap-2">
+                                            <button onClick={() => onAssign(row)} className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">Assign</button>
+                                            <button onClick={() => onDelete(row.id, row.name)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">Remove</button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                )}
-            </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SportsTable({ rows, isPending, onDelete }) {
+    return (
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+            <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">University Sports</h2>
+            {isPending ? (
+                <div className="flex items-center justify-center py-20 text-gray-400 font-bold animate-pulse">Fetching department data…</div>
+            ) : rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-gray-300">
+                    <p className="font-bold">No departments added yet.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {rows.map((row) => (
+                        <div key={row.id} className="bg-[#FAFBFD] p-6 rounded-[28px] border border-gray-50 group hover:shadow-lg transition-all hover:-translate-x-1">
+                            <div className="flex items-start justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                                        {row.image ? <img src={row.image} className="w-full h-full object-cover" /> : <span className="text-2xl">{row.name.substring(0, 1)}</span>}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{row.name}</h4>
+                                        <span className="text-[10px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Active Dept</span>
+                                    </div>
+                                </div>
+                                <button onClick={() => onDelete(row.id, row.name)} className="text-gray-300 hover:text-rose-500 transition-colors">🗑️</button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Team Personnel</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[...(row.assignedSubAdmins || []), ...(row.assignedCoaches || [])].length > 0 ? (
+                                            [...(row.assignedSubAdmins || []), ...(row.assignedCoaches || [])].map((p, idx) => (
+                                                <span key={idx} className="bg-white px-3 py-1 rounded-xl text-[10px] font-bold text-gray-700 shadow-sm border border-gray-50">{p}</span>
+                                            ))
+                                        ) : <span className="text-[10px] text-gray-300 italic">No assigned staff</span>}
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between">
+                                    <Link
+                                        href={`/sports/${row.id}`}
+                                        className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        View Profile
+                                    </Link>
+                                    <div className="w-10 h-6 bg-indigo-600 rounded-full relative p-1">
+                                        <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function StudentsTable({ rows, isPending, onEdit, onDelete }) {
+    const badge = {
+        ACTIVE: "bg-green-100 text-green-700",
+        BLOCKED: "bg-red-100 text-red-700",
+    };
+
+    return (
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+            <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">Student Community</h2>
+            {isPending ? (
+                <div className="flex items-center justify-center py-20 text-gray-400 font-bold italic animate-pulse">Accessing registry…</div>
+            ) : rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-gray-400">
+                    <p className="font-bold">Registry is empty.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {rows.map((row) => (
+                        <div key={row.id} className="flex items-center justify-between p-6 bg-[#FAFBFD] rounded-[28px] border border-gray-50 transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-50 group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center font-black text-indigo-600 text-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    {row.name.substring(0, 1).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div className="font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{row.name}</div>
+                                    <div className="text-[10px] font-mono font-black text-gray-400 mt-0.5">{row.universityId}</div>
+                                    <div className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[8px] font-black uppercase ${badge[row.status] || ""}`}>{row.status}</div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-3">
+                                <div className="text-[10px] font-black text-gray-300" suppressHydrationWarning>{new Date(row.createdAt).toLocaleDateString()}</div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => onEdit(row)} className="p-2 hover:bg-indigo-50 rounded-xl text-gray-400 hover:text-indigo-600 transition-all">✏️</button>
+                                    <button onClick={() => onDelete(row.id, row.name)} className="p-2 hover:bg-rose-50 rounded-xl text-gray-400 hover:text-rose-500 transition-all">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

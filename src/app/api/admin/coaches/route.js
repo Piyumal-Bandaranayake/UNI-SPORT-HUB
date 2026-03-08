@@ -74,3 +74,29 @@ export async function GET() {
         return NextResponse.json({ error: "Failed to fetch coaches" }, { status: 500 });
     }
 }
+
+export async function DELETE(req) {
+    try {
+        const session = await auth();
+        if (!session || session.user.role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id } = await req.json();
+        if (!id) {
+            return NextResponse.json({ error: "ID is required" }, { status: 400 });
+        }
+
+        await dbConnect();
+        const deleted = await Coach.findByIdAndDelete(id);
+
+        if (!deleted) {
+            return NextResponse.json({ error: "Coach not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: "Coach removed successfully" });
+    } catch (err) {
+        console.error("deleteCoach API error:", err);
+        return NextResponse.json({ error: "Failed to delete coach" }, { status: 500 });
+    }
+}
