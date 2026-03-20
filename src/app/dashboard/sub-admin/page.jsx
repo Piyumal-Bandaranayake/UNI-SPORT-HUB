@@ -7,6 +7,7 @@ import Link from "next/link";
 const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Overview" },
     { id: "Management", icon: "🏢", label: "Dept Management" },
+    { id: "Requests", icon: "📥", label: "Team Requests" },
     { id: "Coaches", icon: "👨‍🏫", label: "Coaches", href: "/dashboard/sub-admin/sports" },
     { id: "Equipment", icon: "🏸", label: "Equipment Tracking" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
@@ -16,24 +17,34 @@ export default function SubAdminDashboard() {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
+    const [requests, setRequests] = useState([]);
     const [inventoryData, setInventoryData] = useState({});
     const [loadingInventory, setLoadingInventory] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
-        const fetchSports = async () => {
+        const fetchSportsAndRequests = async () => {
             try {
-                const res = await fetch("/api/user/assigned-sports");
-                if (res.ok) {
-                    const data = await res.json();
+                const [sportsRes, requestsRes] = await Promise.all([
+                    fetch("/api/user/assigned-sports"),
+                    fetch("/api/sub-admin/requests")
+                ]);
+                
+                if (sportsRes.ok) {
+                    const data = await sportsRes.json();
                     setSports(data);
                     fetchAllInventory(data);
                 }
+                
+                if (requestsRes.ok) {
+                    const reqData = await requestsRes.json();
+                    setRequests(reqData);
+                }
             } catch (err) {
-                console.error("Failed to fetch sports:", err);
+                console.error("Failed to fetch data:", err);
             }
         };
-        fetchSports();
+        fetchSportsAndRequests();
     }, []);
 
     const fetchAllInventory = async (sportsList) => {
@@ -71,6 +82,24 @@ export default function SubAdminDashboard() {
             }
         } catch (err) {
             console.error("Failed to update quantity:", err);
+        }
+    };
+
+    const handleRequestAction = async (requestId, action) => {
+        try {
+            const res = await fetch(`/api/sub-admin/requests/${requestId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: action })
+            });
+
+            if (res.ok) {
+                setRequests(prev => prev.filter(r => r._id !== requestId));
+            } else {
+                alert(`Failed to ${action} request`);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -249,10 +278,69 @@ export default function SubAdminDashboard() {
                                              >
                                                 Open Management Dashboard
                                              </Link>
-                                             <button className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all">View Applications</button>
+                                             <button onClick={() => setActiveTab("Requests")} className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all">View Applications</button>
                                          </div>
                                     </div>
                                 )) : <div className="text-gray-400 italic py-10 text-center col-span-2">No departments assigned to you.</div>}
+                            </div>
+                         </div>
+                    )}
+
+                    {activeTab === "Requests" && (
+                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">
+                            <h3 className="text-xl font-black text-gray-900 mb-8 underline decoration-emerald-200 underline-offset-8 decoration-4">Team Requests</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {requests.length > 0 ? requests.map((req) => (
+                                    <div key={req._id} className="p-6 bg-[#FAFBFD] rounded-[28px] border border-gray-50 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-bold text-gray-900">{req.studentId?.name || "Student"}</h4>
+                                                <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase">{req.sportId?.name || "Sport"}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mb-4">{req.studentId?.universityId} | {req.studentId?.universityEmail}</p>
+                                            <div className="bg-white p-4 rounded-xl border border-gray-100 mb-4 shadow-sm">
+                                                <p className="text-sm text-gray-700 italic">"{req.details}"</p>
+                                            </div>
+
+                                            {req.certificates && req.certificates.length > 0 && (
+                                                <div className="mb-6">
+                                                    <h5 className="text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Qualifications</h5>
+                                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                                        {req.certificates.map((cert, idx) => {
+                                                            const isPdf = cert.startsWith("data:application/pdf");
+                                                            return (
+                                                                <a 
+                                                                    key={idx} 
+                                                                    href={cert} 
+                                                                    target="_blank" 
+                                                                    rel="noreferrer"
+                                                                    download={`qualification_${req.studentId?.name || "student"}_${idx}`}
+                                                                    className="flex-shrink-0 w-16 h-16 rounded-xl border border-gray-200 overflow-hidden relative group hover:border-emerald-500 transition-colors bg-white block"
+                                                                >
+                                                                    {isPdf ? (
+                                                                        <div className="w-full h-full bg-rose-50 flex flex-col items-center justify-center text-rose-500 font-black text-[10px] uppercase">
+                                                                            <span>📄</span>
+                                                                            <span>PDF</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <img src={cert} alt="Qualification" className="w-full h-full object-cover" />
+                                                                    )}
+                                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Open</span>
+                                                                    </div>
+                                                                </a>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => handleRequestAction(req._id, "ACCEPTED")} className="flex-1 bg-gray-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-colors">Accept</button>
+                                            <button onClick={() => handleRequestAction(req._id, "REJECTED")} className="flex-1 bg-rose-50 text-rose-600 py-3 rounded-xl text-xs font-bold hover:bg-rose-100 transition-colors">Reject</button>
+                                        </div>
+                                    </div>
+                                )) : <div className="text-gray-400 italic py-10 text-center col-span-2">No pending requests.</div>}
                             </div>
                          </div>
                     )}
