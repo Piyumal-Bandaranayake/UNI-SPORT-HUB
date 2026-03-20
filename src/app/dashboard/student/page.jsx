@@ -16,18 +16,27 @@ export default function StudentDashboard() {
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
     const [joinedSports, setJoinedSports] = useState([]);
+    const [coaches, setCoaches] = useState([]);
     const [isPending, startTransition] = useTransition();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({ sportId: "", details: "" });
+    const [exerciseFormData, setExerciseFormData] = useState({
+        coachId: "",
+        contactNumber: "",
+        freeTime: "",
+        sessionType: ""
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isScheduling, setIsScheduling] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [sportsRes, meRes] = await Promise.all([
+                const [sportsRes, meRes, coachesRes] = await Promise.all([
                     fetch("/api/sports"),
-                    fetch("/api/student/me")
+                    fetch("/api/student/me"),
+                    fetch("/api/student/coaches")
                 ]);
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
@@ -36,6 +45,10 @@ export default function StudentDashboard() {
                 if (meRes.ok) {
                     const meData = await meRes.json();
                     setJoinedSports(meData.populatedApprovedSports || []);
+                }
+                if (coachesRes.ok) {
+                    const coachesData = await coachesRes.json();
+                    setCoaches(coachesData);
                 }
             } catch (err) {
                 console.error("Failed to fetch data:", err);
@@ -77,6 +90,30 @@ export default function StudentDashboard() {
             alert("An error occurred");
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleScheduleExercise = async (e) => {
+        e.preventDefault();
+        setIsScheduling(true);
+        try {
+            const res = await fetch("/api/student/schedule-exercise", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(exerciseFormData)
+            });
+            if (res.ok) {
+                alert("Exercise session scheduled successfully! Waiting for coach approval.");
+                setExerciseFormData({ coachId: "", contactNumber: "", freeTime: "", sessionType: "" });
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to schedule exercise");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred");
+        } finally {
+            setIsScheduling(false);
         }
     };
 
@@ -347,10 +384,54 @@ export default function StudentDashboard() {
                     )}
 
                     {activeTab === "Schedule Exercise" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 text-center">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">🏋️</div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">Schedule Exercise</h3>
-                            <p className="text-gray-400 text-sm mb-8 max-w-sm mx-auto">Your personalized training routines and exercise schedules will appear here once assigned by your coaches.</p>
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl mx-auto">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl">🏋️</div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-gray-900">Schedule Exercise</h3>
+                                    <p className="text-gray-400 text-sm font-medium">Book a guided session with your team coach.</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleScheduleExercise} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Student Name</label>
+                                        <input type="text" value={session?.user?.name || ""} disabled className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-400 outline-none cursor-not-allowed" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Contact Number</label>
+                                        <input required type="tel" placeholder="e.g. +1 234 567 890" value={exerciseFormData.contactNumber} onChange={(e) => setExerciseFormData({...exerciseFormData, contactNumber: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Select Coach</label>
+                                    <select required value={exerciseFormData.coachId} onChange={(e) => setExerciseFormData({...exerciseFormData, coachId: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50">
+                                        <option value="" disabled>Choose a coach...</option>
+                                        {coaches.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Free Time</label>
+                                        <input required type="text" placeholder="e.g. Wednesday 4:00 PM" value={exerciseFormData.freeTime} onChange={(e) => setExerciseFormData({...exerciseFormData, freeTime: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Session Type</label>
+                                        <select required value={exerciseFormData.sessionType} onChange={(e) => setExerciseFormData({...exerciseFormData, sessionType: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50">
+                                            <option value="" disabled>Select type...</option>
+                                            <option value="ONLINE">Online Session</option>
+                                            <option value="PHYSICAL">Physical Training</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button disabled={isScheduling} type="submit" className="w-full bg-indigo-600 text-white py-4 mt-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100">
+                                    {isScheduling ? "Submitting..." : "Send Request to Coach"}
+                                </button>
+                            </form>
                         </div>
                     )}
 
