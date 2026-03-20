@@ -1,30 +1,261 @@
-import { auth } from "@/auth";
+"use client";
 
-export default async function CoachDashboard() {
-    const session = await auth();
+import { useState, useEffect, useTransition } from "react";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
+
+const MENU_ITEMS = [
+    { id: "Overview", icon: "📊", label: "Dashboard" },
+    { id: "Departments", icon: "🏸", label: "My Departments" },
+    { id: "Schedule", icon: "📅", label: "Training Schedule" },
+    { id: "Students", icon: "🎓", label: "Athletes" },
+    { id: "Settings", icon: "⚙️", label: "Settings" },
+];
+
+export default function CoachDashboard() {
+    const { data: session } = useSession();
+    const [activeTab, setActiveTab] = useState("Overview");
+    const [sports, setSports] = useState([]);
+    const [isPending, startTransition] = useTransition();
+
+    useEffect(() => {
+        const fetchSports = async () => {
+            try {
+                const res = await fetch("/api/user/assigned-sports");
+                if (res.ok) {
+                    const data = await res.json();
+                    setSports(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch sports:", err);
+            }
+        };
+        fetchSports();
+    }, []);
 
     return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold text-gray-900">Coach Dashboard</h1>
-            <p className="mt-4 text-lg text-gray-600">Welcome, <span className="font-semibold text-emerald-600">{session.user.name}</span>! ({session.user.universityId})</p>
+        <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
+            {/* Sidebar */}
+            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+                <div className="p-8">
+                    <Link href="/" className="flex items-center gap-2">
+                        <span className="text-2xl font-black tracking-tighter text-gray-900">
+                            Uni<span className="text-emerald-600">Sport</span>Hub
+                        </span>
+                    </Link>
+                </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                    <h3 className="text-xl font-semibold text-gray-800">Assigned Sports</h3>
-                    <p className="mt-2 text-2xl font-bold text-emerald-600">0</p>
-                    <p className="text-sm text-gray-500 mt-1">Manage team members</p>
+                <div className="px-6 space-y-2 flex-1">
+                    <div className="bg-emerald-50 px-4 py-3 rounded-2xl mb-8 border border-emerald-100">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 block mb-1">Role</span>
+                        <span className="text-sm font-black text-gray-900">Official Coach</span>
+                    </div>
+
+                    {MENU_ITEMS.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id
+                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
+                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                }`}
+                        >
+                            <span className="text-lg">{item.icon}</span>
+                            {item.label}
+                        </button>
+                    ))}
                 </div>
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                    <h3 className="text-xl font-semibold text-gray-800">New Requests</h3>
-                    <p className="mt-2 text-2xl font-bold text-amber-600">0</p>
-                    <p className="text-sm text-gray-500 mt-1">Review student applications</p>
+
+                <div className="p-6 border-t border-gray-50 space-y-4">
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                    >
+                        <span className="text-lg">🚪</span>
+                        Sign Out
+                    </button>
                 </div>
-                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100">
-                    <h3 className="text-xl font-semibold text-gray-800">Training Hours</h3>
-                    <p className="mt-2 text-2xl font-bold text-emerald-600">0</p>
-                    <p className="text-sm text-gray-500 mt-1">Total hours this week</p>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 ml-64 p-8">
+                {/* Top Header */}
+                <header className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">{activeTab}</h1>
+                        <p className="text-xs text-gray-400 font-medium mt-1">
+                            {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                        <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
+                        <button className="text-gray-400 hover:text-gray-900 transition-colors relative">
+                            🔔
+                            <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600">
+                                {session?.user?.name?.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-gray-900">Coach {session?.user?.name?.split(' ')[0]}</div>
+                                <div className="text-[10px] text-gray-400 font-medium">Head of Coaching</div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Greeting Banner */}
+                {activeTab === "Overview" && (
+                    <div className="relative mb-10 overflow-hidden rounded-[32px] bg-emerald-600 p-10 shadow-2xl shadow-emerald-100">
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-emerald-400/20 rounded-full blur-2xl"></div>
+
+                        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                            <div className="max-w-md">
+                                <h2 className="text-4xl font-black text-white leading-tight">
+                                    Coach {session?.user?.name?.split(' ')[0]}
+                                </h2>
+                                <p className="mt-4 text-emerald-100 font-medium">
+                                    Excellence is not an act, but a habit. Ready to lead your teams to victory today?
+                                </p>
+                            </div>
+                            <div className="hidden lg:block relative">
+                                <div className="w-56 h-40 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center">
+                                    <span className="text-6xl">🏃</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Dashboard Content */}
+                <div className="space-y-10">
+                    {activeTab === "Overview" && (
+                        <>
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                <StatCard label="My Departments" value={sports.length} color="text-emerald-700" bg="bg-[#ECFDF5]" icon="🏸" subText="Managed teams" />
+                                <StatCard label="Total Athletes" value="0" color="text-sky-700" bg="bg-[#F0F9FF]" icon="🎓" subText="Across all sports" />
+                                <StatCard label="Logged Hours" value="0" color="text-amber-700" bg="bg-[#FFFBEB]" icon="📅" subText="This month" />
+                            </div>
+
+                            <div className="mt-12">
+                                <h3 className="text-lg font-black text-gray-900 mb-8">Quick Management</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {sports.map((sport) => (
+                                        <div key={sport.id} className="bg-white p-6 rounded-[28px] flex items-center justify-between shadow-sm border border-gray-50 group hover:shadow-md transition-all">
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-black text-xl">
+                                                    {sport.name.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 uppercase tracking-tight">{sport.name}</h4>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Active Season</span>
+                                                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter">• Management</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Link href={`/sports/${sport.id}`} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-emerald-600 hover:text-white transition-all">
+                                                →
+                                            </Link>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === "Departments" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             {sports.map((sport) => (
+                                <div key={sport.id} className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-100/50 transition-all group">
+                                    <div className="h-40 bg-emerald-600 relative overflow-hidden">
+                                         <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+                                         <div className="absolute bottom-4 left-6 z-10">
+                                             <h3 className="text-2xl font-black text-white uppercase tracking-tight">{sport.name}</h3>
+                                             <span className="text-[10px] font-black bg-white/20 text-white px-2 py-1 rounded-full uppercase tracking-widest backdrop-blur-sm">Official</span>
+                                         </div>
+                                    </div>
+                                    <div className="p-8">
+                                        <div className="grid grid-cols-2 gap-4 mb-8">
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Athletes</div>
+                                                <div className="text-gray-900 font-bold">-- Registered</div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</div>
+                                                <div className="text-emerald-600 font-bold">Active</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button className="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition-all">Manage Team</button>
+                                            <button className="flex-1 bg-emerald-50 text-emerald-700 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all">View Schedule</button>
+                                        </div>
+                                    </div>
+                                </div>
+                             ))}
+                        </div>
+                    )}
+
+                    {activeTab === "Schedule" && (
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 text-center">
+                            <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📅</div>
+                            <h3 className="text-xl font-black text-gray-900 mb-2">Training Schedule</h3>
+                            <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">No upcoming sessions scheduled for this week.</p>
+                            <button className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-bold text-sm tracking-tight hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
+                                Add New Session
+                            </button>
+                        </div>
+                    )}
+
+                    {activeTab === "Students" && (
+                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-900 mb-6 underline decoration-emerald-200 underline-offset-8 decoration-4">Team Rosters</h3>
+                            <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-gray-400">
+                                <p className="font-bold">No students registered in your departments yet.</p>
+                            </div>
+                         </div>
+                    )}
+
+                    {activeTab === "Settings" && (
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-900 mb-6">Coach Profile</h3>
+                            <div className="space-y-6 max-w-md">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Full Name</label>
+                                    <input type="text" defaultValue={session?.user?.name} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" readOnly />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Specialization</label>
+                                    <input type="text" defaultValue="Professional Coach" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none" />
+                                </div>
+                                <div className="pt-4 flex gap-4">
+                                    <button className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-gray-800 transition-all">Update Profile</button>
+                                    <button onClick={() => signOut()} className="px-6 py-4 rounded-2xl font-bold text-sm text-rose-500 bg-rose-50 hover:bg-rose-100 transition-all">Sign Out</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
+            </main>
+        </div>
+    );
+}
+
+function StatCard({ label, value, color, bg, icon, subText }) {
+    return (
+        <div className={`rounded-[28px] ${bg} p-7 flex flex-col gap-4 shadow-sm border border-gray-50 transition-transform hover:-translate-y-1`}>
+            <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl">{icon}</div>
+                <div className={`text-3xl font-black ${color}`}>{value}</div>
+            </div>
+            <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</p>
+                <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase">{subText}</p>
             </div>
         </div>
     );
 }
+
