@@ -16,6 +16,9 @@ export default function CoachDashboard() {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
+    const [schedules, setSchedules] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [formData, setFormData] = useState({ sportName: '', date: '', time: '', location: '', activity: '' });
     const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
@@ -30,8 +33,52 @@ export default function CoachDashboard() {
                 console.error("Failed to fetch sports:", err);
             }
         };
+        const fetchSchedules = async () => {
+            try {
+                const res = await fetch("/api/user/schedules");
+                if (res.ok) {
+                    const data = await res.json();
+                    setSchedules(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch schedules:", err);
+            }
+        };
         fetchSports();
+        fetchSchedules();
     }, []);
+
+    const handleCreateSchedule = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch("/api/user/schedules", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+                const { scheduleId } = await res.json();
+                setSchedules([{ id: scheduleId, ...formData }, ...schedules]);
+                setIsModalOpen(false);
+                setFormData({ sportName: '', date: '', time: '', location: '', activity: '' });
+                setActiveTab("Schedule");
+            }
+        } catch (err) {
+            console.error("Error creating schedule:", err);
+        }
+    };
+
+    const handleDeleteSchedule = async (id) => {
+        if (!confirm("Are you sure you want to delete this schedule?")) return;
+        try {
+            const res = await fetch(`/api/user/schedules/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                setSchedules(schedules.filter(s => s.id !== id));
+            }
+        } catch (err) {
+            console.error("Error deleting schedule:", err);
+        }
+    };
 
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
@@ -190,8 +237,19 @@ export default function CoachDashboard() {
                                             </div>
                                         </div>
                                         <div className="flex gap-3">
-                                            <button className="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition-all">Manage Team</button>
-                                            <button className="flex-1 bg-emerald-50 text-emerald-700 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all">View Schedule</button>
+                                            <button 
+                                                onClick={() => {
+                                                    setFormData({ ...formData, sportName: sport.name });
+                                                    setIsModalOpen(true);
+                                                }}
+                                                className="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition-all">
+                                                Create Schedule
+                                            </button>
+                                            <button 
+                                                onClick={() => setActiveTab("Schedule")}
+                                                className="flex-1 bg-emerald-50 text-emerald-700 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all">
+                                                Edit schedule
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -200,13 +258,34 @@ export default function CoachDashboard() {
                     )}
 
                     {activeTab === "Schedule" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 text-center">
-                            <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📅</div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">Training Schedule</h3>
-                            <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">No upcoming sessions scheduled for this week.</p>
-                            <button className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-bold text-sm tracking-tight hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
-                                Add New Session
-                            </button>
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-900 mb-6">Training Schedule</h3>
+                            {schedules.length === 0 ? (
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📅</div>
+                                    <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">No upcoming sessions scheduled for this week.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {schedules.map((schedule) => (
+                                        <div key={schedule.id} className="p-6 rounded-[24px] border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <span className="text-xs font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-widest">{schedule.sportName}</span>
+                                                    <span className="text-sm font-bold text-gray-900">{schedule.date} at {schedule.time}</span>
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-900">{schedule.activity}</p>
+                                                <p className="text-xs font-medium text-gray-400 mt-1">📍 {schedule.location}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleDeleteSchedule(schedule.id)}
+                                                className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -239,6 +318,82 @@ export default function CoachDashboard() {
                         </div>
                     )}
                 </div>
+                {/* Modal */}
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl m-4 border border-gray-100">
+                            <h3 className="text-2xl font-black text-gray-900 mb-6">Create Schedule</h3>
+                            <form onSubmit={handleCreateSchedule} className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Sport</label>
+                                    <input 
+                                        type="text"
+                                        readOnly
+                                        value={formData.sportName}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-500 outline-none cursor-not-allowed"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Date</label>
+                                        <input 
+                                            type="date" 
+                                            required
+                                            value={formData.date}
+                                            onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Time</label>
+                                        <input 
+                                            type="time" 
+                                            required
+                                            value={formData.time}
+                                            onChange={(e) => setFormData({...formData, time: e.target.value})}
+                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Location</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        placeholder="e.g. Main Stadium"
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Activity</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        placeholder="e.g. Endurance Training"
+                                        value={formData.activity}
+                                        onChange={(e) => setFormData({...formData, activity: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                    />
+                                </div>
+                                <div className="flex gap-4 pt-4 mt-8 border-t border-gray-50">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 px-6 py-4 rounded-2xl font-bold text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all">
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className="flex-[2] bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
+                                        Create Schedule
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
