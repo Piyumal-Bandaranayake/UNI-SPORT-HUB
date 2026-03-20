@@ -8,6 +8,7 @@ const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Dashboard" },
     { id: "Departments", icon: "🏸", label: "My Departments" },
     { id: "Schedule", icon: "📅", label: "Training Schedule" },
+    { id: "Exercise", icon: "💪", label: "Exercise Schedule" },
     { id: "Students", icon: "🎓", label: "Athletes" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
@@ -17,6 +18,7 @@ export default function CoachDashboard() {
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
     const [schedules, setSchedules] = useState([]);
+    const [exerciseRequests, setExerciseRequests] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({ sportName: '', date: '', time: '', location: '', activity: '' });
     const [isPending, startTransition] = useTransition();
@@ -44,8 +46,20 @@ export default function CoachDashboard() {
                 console.error("Failed to fetch schedules:", err);
             }
         };
+        const fetchExerciseRequests = async () => {
+            try {
+                const res = await fetch("/api/user/exercise-requests");
+                if (res.ok) {
+                    const data = await res.json();
+                    setExerciseRequests(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch exercise requests:", err);
+            }
+        };
         fetchSports();
         fetchSchedules();
+        fetchExerciseRequests();
     }, []);
 
     const handleCreateSchedule = async (e) => {
@@ -77,6 +91,21 @@ export default function CoachDashboard() {
             }
         } catch (err) {
             console.error("Error deleting schedule:", err);
+        }
+    };
+
+    const handleUpdateRequestStatus = async (id, status) => {
+        try {
+            const res = await fetch(`/api/user/exercise-requests/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                setExerciseRequests(exerciseRequests.filter(req => req.id !== id));
+            }
+        } catch (err) {
+            console.error(`Error updating request ${id}:`, err);
         }
     };
 
@@ -282,6 +311,45 @@ export default function CoachDashboard() {
                                                 className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">
                                                 Delete
                                             </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === "Exercise" && (
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-900 mb-6">Exercise Schedule Requests</h3>
+                            {exerciseRequests.length === 0 ? (
+                                <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">💪</div>
+                                    <p className="text-gray-400 font-bold mb-2">No pending exercise requests.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {exerciseRequests.map((req) => (
+                                        <div key={req.id} className="p-6 rounded-[24px] border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <span className="text-xs font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-widest">{req.sessionType}</span>
+                                                    <span className="text-sm font-bold text-gray-900">{req.studentName}</span>
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-900">Requested time: {req.freeTime}</p>
+                                                <p className="text-xs font-medium text-gray-400 mt-1">📞 {req.contactNumber}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleUpdateRequestStatus(req.id, "ACCEPTED")}
+                                                    className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
+                                                    Accept
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleUpdateRequestStatus(req.id, "REJECTED")}
+                                                    className="px-6 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">
+                                                    Decline
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
