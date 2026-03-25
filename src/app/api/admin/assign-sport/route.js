@@ -11,10 +11,10 @@ export async function PATCH(req) {
             return NextResponse.json({ error: "Unauthorized: Only admins can assign sports." }, { status: 401 });
         }
 
-        const { type, universityId, sports } = await req.json();
+        const { type, email, sports } = await req.json();
 
-        if (!type || !universityId || !Array.isArray(sports)) {
-            return NextResponse.json({ error: "Invalid request data." }, { status: 400 });
+        if (!type || !email || !Array.isArray(sports)) {
+            return NextResponse.json({ error: "Invalid request data. Email is required." }, { status: 400 });
         }
 
         await dbConnect();
@@ -22,13 +22,13 @@ export async function PATCH(req) {
         let user;
         if (type === "SUB_ADMIN") {
             user = await SubAdmin.findOneAndUpdate(
-                { universityId },
+                { email: { $regex: new RegExp("^" + email.trim() + "$", "i") } },
                 { managedSports: sports },
                 { new: true }
             );
         } else if (type === "COACH") {
             user = await Coach.findOneAndUpdate(
-                { universityId },
+                { email: { $regex: new RegExp("^" + email.trim() + "$", "i") } },
                 { assignedSports: sports },
                 { new: true }
             );

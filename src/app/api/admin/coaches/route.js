@@ -6,6 +6,7 @@ import Student from "@/models/Student";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { sendLoginDetails } from "@/lib/mail";
 
 export async function POST(req) {
     try {
@@ -14,10 +15,16 @@ export async function POST(req) {
             return NextResponse.json({ error: "Unauthorized: Only admins can create coaches." }, { status: 401 });
         }
 
-        const { name, universityId, password, confirmPassword } = await req.json();
-
-        if (!name || !universityId || !password || !confirmPassword) {
+        const { name, email, password, confirmPassword } = await req.json();
+        
+        if (!name || !email || !password || !confirmPassword) {
             return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+        }
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
         }
 
         if (password.length < 8) {
@@ -28,21 +35,43 @@ export async function POST(req) {
             return NextResponse.json({ error: "Passwords do not match." }, { status: 400 });
         }
 
+        const trimmedEmail = email.trim();
         await dbConnect();
 
-        // Cross-collection uniqueness check
-        const models = [Admin, SubAdmin, Coach, Student];
-        for (const model of models) {
-            const existing = await model.findOne({ universityId });
+        // Cross-check across ALL roles and identifiers
+        const checks = [
+            { model: Admin, field: "universityId" },
+            { model: SubAdmin, field: "email" },
+            { model: Coach, field: "email" },
+            { model: Student, field: "universityId" },
+            { model: Student, field: "universityEmail" }
+        ];
+
+        for (const { model, field } of checks) {
+            const existing = await model.findOne({ 
+                [field]: { $regex: new RegExp("^" + trimmedEmail + "$", "i") } 
+            });
             if (existing) {
-                return NextResponse.json({ error: `University ID "${universityId}" is already registered.` }, { status: 400 });
+                return NextResponse.json({ 
+                    error: `The Email "${trimmedEmail}" is already registered in our system.` 
+                }, { status: 400 });
             }
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
-        const newCoach = await Coach.create({ name, universityId, passwordHash });
 
-        return NextResponse.json({ success: `Coach "${name}" created successfully.`, data: newCoach }, { status: 201 });
+        // Proactive Dispatch: Verify email delivery before final creation
+        const emailStatus = await sendLoginDetails(trimmedEmail, name, "COACH", password);
+        
+        if (!emailStatus.success) {
+            return NextResponse.json({ 
+                error: "Your email is not valid. Please enter a correct email address to continue." 
+            }, { status: 400 });
+        }
+
+        const newCoach = await Coach.create({ name, email: trimmedEmail, passwordHash });
+
+        return NextResponse.json({ success: `Coach "${name}" created successfully. Login details sent to email.`, data: newCoach }, { status: 201 });
     } catch (err) {
         console.error("createCoach API error:", err);
         return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
@@ -57,12 +86,12 @@ export async function GET() {
         }
 
         await dbConnect();
-        const coaches = await Coach.find({}, "name universityId status assignedSports createdAt").lean();
+        const coaches = await Coach.find({}, "name email status assignedSports createdAt").lean();
 
         const formatted = coaches.map((c) => ({
             id: c._id.toString(),
             name: c.name,
-            universityId: c.universityId,
+            email: c.email,
             status: c.status,
             assignedSports: c.assignedSports,
             createdAt: c.createdAt.toISOString(),

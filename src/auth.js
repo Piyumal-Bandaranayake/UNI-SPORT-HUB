@@ -34,7 +34,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 let userRole = null;
 
                 for (const item of models) {
-                    const user = await item.model.findOne({ universityId });
+                    let user;
+                    
+                    if (item.role === "SUB_ADMIN" || item.role === "COACH") {
+                        // Staff log in with their email
+                        user = await item.model.findOne({ email: universityId });
+                    } else if (item.role === "STUDENT") {
+                        // Students can log in with ID OR Email
+                        user = await item.model.findOne({ 
+                            $or: [
+                                { universityId: universityId },
+                                { universityEmail: universityId }
+                            ] 
+                        });
+                    } else {
+                        // Admins log in with their University ID
+                        user = await item.model.findOne({ universityId });
+                    }
+                    
                     if (user) {
                         userFound = user;
                         userRole = item.role;
