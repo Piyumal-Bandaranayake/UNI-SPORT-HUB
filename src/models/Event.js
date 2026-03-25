@@ -7,6 +7,7 @@ const EventSchema = new mongoose.Schema({
     time: { type: String, required: true },
     location: { type: String, required: true },
     description: { type: String },
+    image: { type: String },
     type: { type: String, enum: ["TRAINING", "MATCH", "TOURNAMENT", "MEETING"], default: "TRAINING" },
     status: { type: String, enum: ["UPCOMING", "LIVE", "COMPLETED", "CANCELLED"], default: "UPCOMING" },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
