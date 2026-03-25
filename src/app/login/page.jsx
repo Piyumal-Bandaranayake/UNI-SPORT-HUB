@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
     const [formData, setFormData] = useState({ universityId: "", password: "" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const sessionExpired = searchParams.get("reason") === "session_expired";
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,6 +59,14 @@ export default function LoginPage() {
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {sessionExpired && (
+                        <div className="rounded-md bg-amber-50 p-4 border border-amber-300">
+                            <p className="text-sm text-amber-800 font-medium">
+                                ⏰ Your session has expired after 1 hour. Please log in again.
+                            </p>
+                        </div>
+                    )}
+
                     {error && (
                         <div className="rounded-md bg-red-50 p-4 border border-red-200">
                             <p className="text-sm text-red-700">{error}</p>
