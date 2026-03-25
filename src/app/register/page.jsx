@@ -9,22 +9,104 @@ export default function RegisterPage() {
         name: "",
         universityId: "",
         universityEmail: "",
+        faculty: "",
         password: "",
         confirmPassword: "",
     });
     const [error, setError] = useState("");
+    const [idError, setIdError] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const validateId = (id, faculty) => {
+        if (!faculty || !id) return "";
+        const pattern = new RegExp(`^${faculty}\\d{8}$`);
+        if (!pattern.test(id)) {
+            return `Registration number must start with "${faculty}" followed by exactly 8 digits (e.g. ${faculty}12345678)`;
+        }
+        return "";
+    };
+
+    const validateEmail = (email, universityId) => {
+        if (!email || !universityId) return "";
+        const expected = `${universityId}@my.sliit.lk`;
+        if (email !== expected) {
+            return `University email must be "${expected}"`;
+        }
+        return "";
+    };
+
+    const validatePassword = (password) => {
+        const requirements = [
+            { id: 0, label: "Minimum 8 characters", test: (pw) => pw.length >= 8 },
+            { id: 1, label: "Uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
+            { id: 2, label: "Lowercase letter", test: (pw) => /[a-z]/.test(pw) },
+            { id: 3, label: "A number", test: (pw) => /\d/.test(pw) },
+            { id: 4, label: "A special character (@$!%*?&)", test: (pw) => /[@$!%*?&]/.test(pw) },
+        ];
+        
+        const failedCount = requirements.filter(req => !req.test(password)).length;
+        if (failedCount > 0 && password.length > 0) {
+            return "Please fulfill all security requirements.";
+        }
+        return "";
+    };
+
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const updated = { ...formData, [e.target.name]: e.target.value };
+        setFormData(updated);
+
+        // Re-validate Registration Number whenever universityId or faculty changes
+        if (e.target.name === "universityId" || e.target.name === "faculty") {
+            const idToCheck = e.target.name === "universityId" ? e.target.value : formData.universityId;
+            const facToCheck = e.target.name === "faculty" ? e.target.value : formData.faculty;
+            setIdError(validateId(idToCheck, facToCheck));
+            // Also re-validate email when universityId changes
+            if (e.target.name === "universityId") {
+                setEmailError(validateEmail(formData.universityEmail, e.target.value));
+            }
+        }
+
+        // Re-validate email whenever universityEmail or universityId changes
+        if (e.target.name === "universityEmail") {
+            setEmailError(validateEmail(e.target.value, formData.universityId));
+        }
+
+        // Re-validate password strength
+        if (e.target.name === "password") {
+            setPasswordError(validatePassword(e.target.value));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
         setSuccess("");
+
+        // Block submission if ID doesn't match faculty
+        const idValidationError = validateId(formData.universityId, formData.faculty);
+        if (idValidationError) {
+            setIdError(idValidationError);
+            return;
+        }
+
+        // Block submission if email doesn't match registration number
+        const emailValidationError = validateEmail(formData.universityEmail, formData.universityId);
+        if (emailValidationError) {
+            setEmailError(emailValidationError);
+            return;
+        }
+
+        // Block submission if password is weak
+        const passwordValidationError = validatePassword(formData.password);
+        if (passwordValidationError) {
+            setPasswordError(passwordValidationError);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -94,17 +176,47 @@ export default function RegisterPage() {
                             />
                         </div>
                         <div>
-                            <label htmlFor="universityId" className="block text-sm font-medium text-gray-700">University ID</label>
+                            <label htmlFor="faculty" className="block text-sm font-medium text-gray-700">Faculty</label>
+                            <select
+                                id="faculty"
+                                name="faculty"
+                                required
+                                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1 bg-white"
+                                value={formData.faculty}
+                                onChange={handleChange}
+                            >
+                                <option value="" disabled>-- Select your Faculty --</option>
+                                <option value="IT">IT – Faculty of Information Technology</option>
+                                <option value="BM">BM – Faculty of Business Management</option>
+                                <option value="ENG">ENG – Faculty of Engineering</option>
+                                <option value="HM">HM – Faculty of Hospitality Management</option>
+                                <option value="AR">AR – Faculty of Agriculture</option>
+                                <option value="HU">HU – Faculty of Humanities</option>
+                                <option value="FA">FA – Faculty of Fine Arts</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="universityId" className="block text-sm font-medium text-gray-700">Registration Number</label>
                             <input
                                 id="universityId"
                                 name="universityId"
                                 type="text"
                                 required
-                                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1"
-                                placeholder="Ex: UWU/IIT/21/001"
+                                className={`relative block w-full appearance-none rounded-md border px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:outline-none sm:text-sm mt-1 ${
+                                    idError
+                                        ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+                                        : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                }`}
+                                placeholder={formData.faculty ? `${formData.faculty}12345678` : "Select a faculty first"}
                                 value={formData.universityId}
                                 onChange={handleChange}
                             />
+                            {idError && (
+                                <p className="mt-1 text-xs text-red-600">{idError}</p>
+                            )}
+                            {!idError && formData.universityId && formData.faculty && (
+                                <p className="mt-1 text-xs text-green-600">✓ Registration number format is valid</p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="universityEmail" className="block text-sm font-medium text-gray-700">University Email</label>
@@ -113,11 +225,21 @@ export default function RegisterPage() {
                                 name="universityEmail"
                                 type="email"
                                 required
-                                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1"
-                                placeholder="Ex: john@uwu.ac.lk"
+                                className={`relative block w-full appearance-none rounded-md border px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:outline-none sm:text-sm mt-1 ${
+                                    emailError
+                                        ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+                                        : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                }`}
+                                placeholder={formData.universityId ? `${formData.universityId}@my.sliit.lk` : "Enter registration number first"}
                                 value={formData.universityEmail}
                                 onChange={handleChange}
                             />
+                            {emailError && (
+                                <p className="mt-1 text-xs text-red-600">{emailError}</p>
+                            )}
+                            {!emailError && formData.universityEmail && formData.universityId && (
+                                <p className="mt-1 text-xs text-green-600">✓ University email is valid</p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
@@ -126,12 +248,35 @@ export default function RegisterPage() {
                                 name="password"
                                 type="password"
                                 required
-                                minLength={8}
-                                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm mt-1"
+                                className={`relative block w-full appearance-none rounded-md border px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:outline-none sm:text-sm mt-1 ${
+                                    passwordError && formData.password
+                                        ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+                                        : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                }`}
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={handleChange}
                             />
+                            
+                            {/* Password Requirements Checklist */}
+                            <div className="mt-3 grid grid-cols-1 gap-1 text-[11px]">
+                                {[
+                                    { label: "8+ Characters", test: (pw) => pw.length >= 8 },
+                                    { label: "Uppercase & Lowercase", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
+                                    { label: "Number", test: (pw) => /\d/.test(pw) },
+                                    { label: "Special Character (@$!%*?&)", test: (pw) => /[@$!%*?&]/.test(pw) },
+                                ].map((req, i) => {
+                                    const isDone = req.test(formData.password);
+                                    return (
+                                        <div key={i} className={`flex items-center space-x-2 ${isDone ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                                            <span className={`w-3 h-3 flex items-center justify-center rounded-full border ${isDone ? "bg-green-100 border-green-500" : "border-gray-200"}`}>
+                                                {isDone && "✓"}
+                                            </span>
+                                            <span>{req.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>

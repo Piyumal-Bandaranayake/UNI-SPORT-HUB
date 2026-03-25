@@ -77,26 +77,31 @@ export default function CreateSportForm({ onSuccess }) {
                 </div>
             )}
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sport Image
-                </label>
-                <div className="flex items-center gap-4">
-                    {formData.image && (
-                        <img src={formData.image} alt="Preview" className="h-16 w-16 object-cover rounded-md border" />
-                    )}
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                    />
+            <div className="space-y-3 mb-4 text-center">
+                <div className="flex flex-col items-center gap-4 group">
+                    <div className="relative w-24 h-24 rounded-3xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center transition-all group-hover:border-indigo-400 group-hover:bg-indigo-50/30">
+                        {formData.image ? (
+                            <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-2xl text-gray-300">🖼️</span>
+                        )}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                    </div>
+                   <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sport Icon / Image</p>
+                        <p className="text-[9px] text-gray-300 mt-0.5">Click box to upload (Max 5MB)</p>
+                   </div>
                 </div>
             </div>
 
-            <div>
-                <label htmlFor="sport-name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Sport Name
+            <div className="space-y-1.5">
+                <label htmlFor="sport-name" className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Sport Department Name
                 </label>
                 <input
                     id="sport-name"
@@ -105,14 +110,14 @@ export default function CreateSportForm({ onSuccess }) {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Ex: Football"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. Badminton, Cricket"
+                    className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
                 />
             </div>
 
-            <div>
-                <label htmlFor="sport-description" className="block text-sm font-medium text-gray-700 mb-1">
-                    Description (Optional)
+            <div className="space-y-1.5">
+                <label htmlFor="sport-description" className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                    Department Synopsis
                 </label>
                 <textarea
                     id="sport-description"
@@ -120,18 +125,20 @@ export default function CreateSportForm({ onSuccess }) {
                     rows={3}
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Ex: University first team football"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    placeholder="Briefly describe this sports department..."
+                    className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none resize-none"
                 />
             </div>
 
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400 transition-colors"
-            >
-                {loading ? "Creating..." : "Create Sport"}
-            </button>
+            <div className="pt-2">
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-2xl bg-indigo-600 px-6 py-4 text-sm font-black uppercase tracking-widest text-white hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:bg-indigo-400 transition-all shadow-xl shadow-indigo-100"
+                >
+                    {loading ? "Creating..." : "Initialize Sport"}
+                </button>
+            </div>
         </form>
     );
 }

@@ -7,4 +7,8 @@ const SportSchema = new mongoose.Schema({
     status: { type: String, enum: ["ACTIVE", "INACTIVE"], default: "ACTIVE" },
 }, { timestamps: true });
 
-export default mongoose.models.Sport || mongoose.model('Sport', SportSchema);
+if (mongoose.models.Sport) {
+    delete mongoose.models.Sport;
+}
+
+export default mongoose.model('Sport', SportSchema);

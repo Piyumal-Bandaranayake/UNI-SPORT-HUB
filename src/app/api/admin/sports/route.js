@@ -13,19 +13,24 @@ export async function POST(req) {
         }
 
         const { name, description, image } = await req.json();
+        const trimmedName = name?.trim();
 
-        if (!name) {
+        if (!trimmedName) {
             return NextResponse.json({ error: "Sport name is required." }, { status: 400 });
         }
 
         await dbConnect();
 
-        const existing = await Sport.findOne({ name });
+        // Case-insensitive duplicate check
+        const existing = await Sport.findOne({ 
+            name: { $regex: new RegExp("^" + trimmedName + "$", "i") } 
+        });
+
         if (existing) {
-            return NextResponse.json({ error: `Sport "${name}" already exists.` }, { status: 400 });
+            return NextResponse.json({ error: `Sport department "${trimmedName}" already exists.` }, { status: 400 });
         }
 
-        const newSport = await Sport.create({ name, description, image });
+        const newSport = await Sport.create({ name: trimmedName, description, image });
 
         return NextResponse.json({ success: `Sport "${name}" created successfully.`, data: newSport }, { status: 201 });
     } catch (err) {
@@ -63,6 +68,54 @@ export async function GET() {
     } catch (err) {
         console.error("getSports API error:", err);
         return NextResponse.json({ error: "Failed to fetch sports" }, { status: 500 });
+    }
+}
+
+export async function PATCH(req) {
+    try {
+        const session = await auth();
+        if (!session || !["ADMIN", "SUB_ADMIN"].includes(session.user.role)) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id, name, description, status } = await req.json();
+        if (!id) {
+            return NextResponse.json({ error: "Sport ID is required" }, { status: 400 });
+        }
+
+        await dbConnect();
+
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (description !== undefined) updateData.description = description;
+        
+        if (name) {
+            const trimmedName = name.trim();
+            if (trimmedName.length < 3) {
+                return NextResponse.json({ error: "Sport title must be at least 3 characters." }, { status: 400 });
+            }
+
+            // Check for potential naming duplicate (excluding current sport)
+            const existing = await Sport.findOne({ 
+                name: { $regex: new RegExp("^" + trimmedName + "$", "i") },
+                _id: { $ne: id }
+            });
+            if (existing) {
+                return NextResponse.json({ error: `The name "${trimmedName}" is already taken by another department.` }, { status: 400 });
+            }
+            updateData.name = trimmedName;
+        }
+
+        const updated = await Sport.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updated) {
+            return NextResponse.json({ error: "Sport not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: "Sport metadata updated successfully", data: updated });
+    } catch (err) {
+        console.error("updateSport API error:", err);
+        return NextResponse.json({ error: "Failed to update sport" }, { status: 500 });
     }
 }
 

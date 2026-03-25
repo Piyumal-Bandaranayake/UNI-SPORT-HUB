@@ -6,6 +6,7 @@ import Student from "@/models/Student";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { sendLoginDetails } from "@/lib/mail";
 
 export async function POST(req) {
     try {
@@ -14,10 +15,16 @@ export async function POST(req) {
             return NextResponse.json({ error: "Unauthorized: Only admins can create sub-admins." }, { status: 401 });
         }
 
-        const { name, universityId, password, confirmPassword } = await req.json();
-
-        if (!name || !universityId || !password || !confirmPassword) {
+        const { name, email, password, confirmPassword } = await req.json();
+        
+        if (!name || !email || !password || !confirmPassword) {
             return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+        }
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
         }
 
         if (password.length < 8) {
@@ -28,21 +35,43 @@ export async function POST(req) {
             return NextResponse.json({ error: "Passwords do not match." }, { status: 400 });
         }
 
+        const trimmedEmail = email.trim();
         await dbConnect();
 
-        // Check uniqueness across ALL collections
-        const models = [Admin, SubAdmin, Coach, Student];
-        for (const model of models) {
-            const existing = await model.findOne({ universityId });
+        // Cross-check across ALL roles and identifiers
+        const checks = [
+            { model: Admin, field: "universityId" },
+            { model: SubAdmin, field: "email" },
+            { model: Coach, field: "email" },
+            { model: Student, field: "universityId" },
+            { model: Student, field: "universityEmail" }
+        ];
+
+        for (const { model, field } of checks) {
+            const existing = await model.findOne({ 
+                [field]: { $regex: new RegExp("^" + trimmedEmail + "$", "i") } 
+            });
             if (existing) {
-                return NextResponse.json({ error: `University ID "${universityId}" is already registered.` }, { status: 400 });
+                return NextResponse.json({ 
+                    error: `The Email "${trimmedEmail}" is already registered in our system.` 
+                }, { status: 400 });
             }
         }
 
         const passwordHash = await bcrypt.hash(password, 10);
-        const newSubAdmin = await SubAdmin.create({ name, universityId, passwordHash });
 
-        return NextResponse.json({ success: `Sub-Admin "${name}" created successfully.`, data: newSubAdmin }, { status: 201 });
+        // Proactive Dispatch: Verify email delivery before final creation
+        const emailStatus = await sendLoginDetails(trimmedEmail, name, "SUB_ADMIN", password);
+        
+        if (!emailStatus.success) {
+            return NextResponse.json({ 
+                error: "Your email is not valid. Please enter a correct email address to continue." 
+            }, { status: 400 });
+        }
+
+        const newSubAdmin = await SubAdmin.create({ name, email: trimmedEmail, passwordHash });
+
+        return NextResponse.json({ success: `Sub-Admin "${name}" created successfully. Login details sent to email.`, data: newSubAdmin }, { status: 201 });
     } catch (err) {
         console.error("createSubAdmin API error:", err);
         return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
@@ -57,12 +86,12 @@ export async function GET() {
         }
 
         await dbConnect();
-        const subAdmins = await SubAdmin.find({}, "name universityId status managedSports createdAt").lean();
+        const subAdmins = await SubAdmin.find({}, "name email status managedSports createdAt").lean();
 
         const formatted = subAdmins.map((s) => ({
             id: s._id.toString(),
             name: s.name,
-            universityId: s.universityId,
+            email: s.email,
             status: s.status,
             managedSports: s.managedSports || [],
             createdAt: s.createdAt.toISOString(),

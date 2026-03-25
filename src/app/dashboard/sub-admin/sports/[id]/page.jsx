@@ -38,8 +38,12 @@ export default function SportManagementDashboard() {
     const [showParticipantsModal, setShowParticipantsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
     
+    // Updates State
+    const [updateData, setUpdateData] = useState({ name: "", description: "" });
+    const [updateStatus, setUpdateStatus] = useState({ loading: false, error: "", success: "" });
+
     const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD" });
-    const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "" });
+    const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
 
     useEffect(() => {
         const fetchSportDetails = async () => {
@@ -50,6 +54,7 @@ export default function SportManagementDashboard() {
                     const foundSport = data.find(s => s.id === id);
                     if (foundSport) {
                         setSport(foundSport);
+                        setUpdateData({ name: foundSport.name, description: foundSport.description || "" });
                         // Fetch all relevant data for this sport
                         fetchCoaches(foundSport.name);
                         fetchInventory(foundSport.id);
@@ -211,7 +216,7 @@ export default function SportManagementDashboard() {
             if (res.ok) {
                 fetchEvents(sport.id);
                 setShowAddEventModal(false);
-                setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "" });
+                setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
             }
         } catch (err) {
             console.error("Failed to add event:", err);
@@ -257,6 +262,34 @@ export default function SportManagementDashboard() {
             }
         } catch (err) {
             console.error("Failed to update participants:", err);
+        }
+    };
+
+    const handleUpdateSport = async (e) => {
+        e.preventDefault();
+        setUpdateStatus({ loading: true, error: "", success: "" });
+
+        if (updateData.name.trim().length < 3) {
+            setUpdateStatus({ loading: false, error: "Sport Title must be at least 3 characters long.", success: "" });
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/admin/sports", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: sport.id, ...updateData }),
+            });
+            const result = await res.json();
+
+            if (res.ok) {
+                setUpdateStatus({ loading: false, error: "", success: "Department details synchronized successfully!" });
+                setSport(result.data);
+            } else {
+                setUpdateStatus({ loading: false, error: result.error || "Failed to update department.", success: "" });
+            }
+        } catch (err) {
+            setUpdateStatus({ loading: false, error: "Connection error. Please try again.", success: "" });
         }
     };
 
@@ -552,50 +585,60 @@ export default function SportManagementDashboard() {
                             ) : events.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {events.map((event) => (
-                                        <div key={event._id} className="p-6 bg-[#FAFBFD] rounded-[32px] border border-gray-50 group hover:border-emerald-100 transition-all relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
-                                                <button 
-                                                    onClick={() => handleDeleteEvent(event._id)}
-                                                    className="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xs"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-
-                                            <div className="flex gap-4 mb-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex flex-col items-center justify-center border border-gray-50">
-                                                    <span className="text-[10px] font-black text-rose-500 uppercase">{new Date(event.date).toLocaleString('en-US', { month: 'short' })}</span>
-                                                    <span className="text-lg font-black text-gray-900">{new Date(event.date).getDate()}</span>
+                                        <div key={event._id} className="bg-white rounded-[32px] border border-gray-50 group hover:border-emerald-100 transition-all relative overflow-hidden flex flex-col h-full shadow-sm">
+                                            {event.image ? (
+                                                <div className="h-32 w-full overflow-hidden shrink-0">
+                                                    <img src={event.image} alt="Event Cover" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 </div>
-                                                <div>
-                                                    <div className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase inline-block mb-1 ${
-                                                        event.type === "MATCH" ? "bg-rose-50 text-rose-600" :
-                                                        event.type === "TOURNAMENT" ? "bg-amber-50 text-amber-600" :
-                                                        "bg-sky-50 text-sky-600"
-                                                    }`}>
-                                                        {event.type}
-                                                    </div>
-                                                    <h4 className="font-bold text-gray-900">{event.name}</h4>
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                <div className="h-3 bg-gray-50"></div>
+                                            )}
 
-                                            <div className="flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white/50 p-4 rounded-2xl border border-gray-50">
-                                                <span>🕒 {event.time}</span>
-                                                <div className="flex items-center gap-4">
+                                            <div className="p-6 flex flex-col flex-1">
+                                                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all z-10">
                                                     <button 
-                                                        onClick={() => {
-                                                            setSelectedEvent(event);
-                                                            setShowParticipantsModal(true);
-                                                        }}
-                                                        className="text-emerald-600 hover:sky-600 font-black py-1 px-2 bg-emerald-50 rounded-lg transition-all"
+                                                        onClick={() => handleDeleteEvent(event._id)}
+                                                        className="w-8 h-8 rounded-full bg-white/90 text-rose-500 border border-rose-100 flex items-center justify-center text-xs shadow-lg"
                                                     >
-                                                        👥 {event.participants?.length || 0} Participants
+                                                        🗑️
                                                     </button>
-                                                    <span className={`px-2 py-0.5 rounded-md ${
-                                                        event.status === "UPCOMING" ? "text-sky-600" :
-                                                        event.status === "LIVE" ? "text-emerald-600 animate-pulse" :
-                                                        "text-gray-300"
-                                                    }`}>{event.status}</span>
+                                                </div>
+
+                                                <div className="flex gap-4 mb-6">
+                                                    <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex flex-col items-center justify-center border border-gray-50 shrink-0">
+                                                        <span className="text-[10px] font-black text-rose-500 uppercase">{new Date(event.date).toLocaleString('en-US', { month: 'short' })}</span>
+                                                        <span className="text-lg font-black text-gray-900">{new Date(event.date).getDate()}</span>
+                                                    </div>
+                                                    <div>
+                                                        <div className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase inline-block mb-1 ${
+                                                            event.type === "MATCH" ? "bg-rose-50 text-rose-600" :
+                                                            event.type === "TOURNAMENT" ? "bg-amber-50 text-amber-600" :
+                                                            "bg-sky-50 text-sky-600"
+                                                        }`}>
+                                                            {event.type}
+                                                        </div>
+                                                        <h4 className="font-bold text-gray-900 line-clamp-1">{event.name}</h4>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-auto flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
+                                                    <span>🕒 {event.time}</span>
+                                                    <div className="flex items-center gap-4">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setSelectedEvent(event);
+                                                                setShowParticipantsModal(true);
+                                                            }}
+                                                            className="text-emerald-600 hover:sky-600 font-black py-1 px-2 transition-all"
+                                                        >
+                                                            👥 {event.participants?.length || 0}
+                                                        </button>
+                                                        <span className={`${
+                                                            event.status === "UPCOMING" ? "text-sky-600" :
+                                                            event.status === "LIVE" ? "text-emerald-600 animate-pulse" :
+                                                            "text-gray-300"
+                                                        }`}>{event.status}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -662,88 +705,155 @@ export default function SportManagementDashboard() {
                                             >
                                                 Done Management
                                             </button>
-                                        </div>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {/* Add Event Modal */}
-                            {showAddEventModal && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-                                    <div className="bg-white w-full max-w-lg rounded-[32px] p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-                                        <div className="flex justify-between items-center mb-8">
-                                            <h3 className="text-xl font-black text-gray-900 text-center flex-1 ml-6">Schedule New Event</h3>
-                                            <button onClick={() => setShowAddEventModal(false)} className="text-gray-400 hover:text-gray-900">✕</button>
-                                        </div>
-                                        <form onSubmit={handleAddEvent} className="space-y-6">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="col-span-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Event Title</label>
-                                                    <input 
-                                                        type="text" required
-                                                        value={newEvent.name}
-                                                        onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none" 
-                                                        placeholder="e.g. Weekly Practice Session"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Date</label>
-                                                    <input 
-                                                        type="date" required
-                                                        value={newEvent.date}
-                                                        onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none" 
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Time</label>
-                                                    <input 
-                                                        type="time" required
-                                                        value={newEvent.time}
-                                                        onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none" 
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Location</label>
-                                                    <input 
-                                                        type="text" required
-                                                        value={newEvent.location}
-                                                        onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none" 
-                                                        placeholder="e.g. Main Gymnasium"
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Event Type</label>
-                                                    <div className="flex gap-2">
-                                                        {["TRAINING", "MATCH", "TOURNAMENT", "MEETING"].map((type) => (
-                                                            <button 
-                                                                key={type} type="button"
-                                                                onClick={() => setNewEvent({...newEvent, type})}
-                                                                className={`flex-1 py-3 rounded-xl text-[8px] font-black uppercase transition-all ${newEvent.type === type ? "bg-gray-900 text-white shadow-lg shadow-gray-200" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
-                                                            >
-                                                                {type}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                type="submit"
-                                                className="w-full bg-sky-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all pt-4"
-                                            >
-                                                Schedule Event
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                             {/* Add Event Modal */}
+                             {showAddEventModal && (
+                                 <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/60 backdrop-blur-md">
+                                     <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh] overflow-hidden border border-gray-100">
+                                         <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+                                             <div>
+                                                 <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                                     📅 <span className="underline decoration-sky-200 decoration-4 underline-offset-4">New Scheduling</span>
+                                                 </h3>
+                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Configure Department Event</p>
+                                             </div>
+                                             <button 
+                                                 onClick={() => setShowAddEventModal(false)} 
+                                                 className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all border border-gray-100"
+                                             >
+                                                 ✕
+                                             </button>
+                                         </div>
 
-                    {activeTab === "Equipment" && (
+                                         <form onSubmit={handleAddEvent} className="p-8 space-y-5 overflow-y-auto custom-scrollbar">
+                                             <div className="space-y-4">
+                                                 <div>
+                                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Cover Media <span className="text-sky-600 ml-2 italic text-[8px]">(Optional)</span></label>
+                                                     <div className="relative h-28 w-full bg-gray-50 rounded-[24px] border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden group hover:border-sky-300 transition-all cursor-pointer">
+                                                         {newEvent.image ? (
+                                                             <div className="relative w-full h-full group">
+                                                                 <img src={newEvent.image} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" alt="Preview" />
+                                                                 <div className="absolute inset-0 bg-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                     <span className="text-[10px] font-black text-white uppercase tracking-widest">Change Image</span>
+                                                                 </div>
+                                                             </div>
+                                                         ) : (
+                                                             <div className="text-center">
+                                                                 <div className="text-2xl mb-1">🖼️</div>
+                                                                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Drop Event Banner</span>
+                                                             </div>
+                                                         )}
+                                                         <input 
+                                                             type="file" 
+                                                             accept="image/*"
+                                                             onChange={(e) => {
+                                                                 const file = e.target.files[0];
+                                                                 if (file) {
+                                                                     const reader = new FileReader();
+                                                                     reader.onloadend = () => setNewEvent({...newEvent, image: reader.result});
+                                                                     reader.readAsDataURL(file);
+                                                                 }
+                                                             }}
+                                                             className="absolute inset-0 opacity-0 cursor-pointer" 
+                                                         />
+                                                     </div>
+                                                 </div>
+
+                                                 <div className="grid grid-cols-2 gap-x-5 gap-y-4">
+                                                     <div className="col-span-2">
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Event Identity / Name</label>
+                                                         <input 
+                                                             type="text" required
+                                                             value={newEvent.name}
+                                                             onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
+                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             placeholder="e.g. Weekly Varsity Training"
+                                                         />
+                                                     </div>
+
+                                                     <div>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Date</label>
+                                                         <input 
+                                                             type="date" required
+                                                             value={newEvent.date}
+                                                             onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                         />
+                                                     </div>
+
+                                                     <div>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Time</label>
+                                                         <input 
+                                                             type="time" required
+                                                             value={newEvent.time}
+                                                             onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                         />
+                                                     </div>
+
+                                                     <div className="col-span-2">
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Venue / Location</label>
+                                                         <input 
+                                                             type="text" required
+                                                             value={newEvent.location}
+                                                             onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
+                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             placeholder="e.g. SLIIT Main Sports Complex"
+                                                         />
+                                                     </div>
+
+                                                     <div className="col-span-2">
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Field Instruction / Overview</label>
+                                                         <textarea 
+                                                             rows={2}
+                                                             value={newEvent.description}
+                                                             onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all resize-none" 
+                                                             placeholder="Tactical notes, requirements, or meeting points..."
+                                                         />
+                                                     </div>
+
+                                                     <div className="col-span-2">
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Selection Category</label>
+                                                         <div className="flex gap-2">
+                                                             {["TRAINING", "MATCH", "TOURNAMENT", "MEETING"].map((type) => (
+                                                                 <button 
+                                                                     key={type} type="button"
+                                                                     onClick={() => setNewEvent({...newEvent, type})}
+                                                                     className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${
+                                                                         newEvent.type === type 
+                                                                         ? "bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-200" 
+                                                                         : "bg-white text-gray-400 border-gray-100 hover:bg-gray-50"
+                                                                     }`}
+                                                                 >
+                                                                     {type}
+                                                                 </button>
+                                                             ))}
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                             
+                                             <div className="pt-2">
+                                                 <button 
+                                                     type="submit"
+                                                     className="w-full bg-sky-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all active:scale-[0.98]"
+                                                 >
+                                                     Publish Department Event
+                                                 </button>
+                                             </div>
+                                         </form>
+                                     </div>
+                                 </div>
+                             )}
+                         </div>
+                     )}
+
+                     {activeTab === "Equipment" && (
                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">
                             <div className="flex justify-between items-center mb-10">
                                 <div>
@@ -927,17 +1037,48 @@ export default function SportManagementDashboard() {
                     )}
 
                     {activeTab === "Settings" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 mb-6 font-medium">Management Settings</h3>
-                            <div className="space-y-6 max-w-md">
+                        <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                                ⚙️ <span className="underline decoration-indigo-200 decoration-4 underline-offset-4">Department Identity</span>
+                            </h3>
+
+                            <form onSubmit={handleUpdateSport} className="space-y-8">
+                                {updateStatus.error && <p className="p-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">{updateStatus.error}</p>}
+                                {updateStatus.success && <p className="p-4 bg-emerald-50 text-emerald-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">{updateStatus.success}</p>}
+
                                 <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Sport Name</label>
-                                    <input type="text" value={sport.name} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-400 outline-none cursor-not-allowed" readOnly />
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Sport Official Title</label>
+                                    <input 
+                                        type="text" 
+                                        value={updateData.name} 
+                                        onChange={(e) => setUpdateData({...updateData, name: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-5 text-sm font-bold text-gray-900 focus:ring-2 ring-indigo-50 outline-none transition-all" 
+                                        placeholder="e.g. SLIIT Cricket Team"
+                                    />
+                                    <p className="mt-2 text-[9px] text-gray-300 font-medium">Changing the title will update the name across all management views.</p>
                                 </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Department Overview / Description</label>
+                                    <textarea 
+                                        rows={6}
+                                        value={updateData.description} 
+                                        onChange={(e) => setUpdateData({...updateData, description: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-5 text-sm font-bold text-gray-900 focus:ring-2 ring-indigo-50 outline-none transition-all resize-none" 
+                                        placeholder="Describe the goals, training schedule, or requirements for this sport..."
+                                    />
+                                </div>
+
                                 <div className="pt-4 flex gap-4">
-                                    <button className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-gray-800 transition-all">Archive Department</button>
+                                    <button 
+                                        type="submit"
+                                        disabled={updateStatus.loading}
+                                        className="flex-1 bg-gray-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-600 transition-all shadow-xl shadow-gray-100 active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        {updateStatus.loading ? "Synchronizing..." : "Update Department Info"}
+                                    </button>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     )}
                 </div>
