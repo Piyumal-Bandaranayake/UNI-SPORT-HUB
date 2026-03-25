@@ -106,6 +106,26 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleToggleStatus = async (id, newStatus) => {
+        try {
+            const res = await fetch("/api/admin/sports", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, status: newStatus })
+            });
+
+            if (res.ok) {
+                fetchAll();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to update status");
+            }
+        } catch (error) {
+            console.error("Status update error:", error);
+            alert("Something went wrong");
+        }
+    };
+
     const handleAddClick = () => {
         setPanelType('CREATE');
         setShowPanel(true);
@@ -255,34 +275,35 @@ export default function AdminDashboard() {
                                     <button className="text-indigo-600 text-xs font-bold hover:underline">View All</button>
                                 </h3>
                                 <div className="space-y-4">
-                                    {sports.slice(0, 2).map((sport) => (
-                                        <div key={sport.id} className="bg-white p-6 rounded-[28px] flex items-center justify-between shadow-sm border border-gray-50 group hover:shadow-md transition-all">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0">
+                                    {sports.slice(0, 3).map((sport) => (
+                                        <div key={sport.id} className="bg-white p-4 rounded-3xl flex items-center justify-between shadow-sm border border-gray-100 group hover:shadow-lg transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 border border-gray-100">
                                                     {sport.image ? (
                                                         <img src={sport.image} alt={sport.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-300 font-black text-2xl bg-indigo-50">
+                                                        <div className="w-full h-full flex items-center justify-center text-gray-200 font-black text-xl bg-gray-50">
                                                             {sport.name.substring(0, 2).toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900">{sport.name}</h4>
-                                                    <p className="text-xs text-gray-400 mt-1 line-clamp-1 max-w-sm">{sport.description || "Active University sport department."}</p>
-                                                    <div className="mt-2 text-[10px] font-black text-indigo-600 uppercase tracking-widest">10 Categories</div>
+                                                    <h4 className="font-black text-sm text-gray-900">{sport.name}</h4>
+                                                    <p className="text-[10px] text-gray-400 font-medium leading-none mt-1">Managed Sport Department</p>
+                                                    <div className="mt-1.5 flex gap-1">
+                                                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                       <span className="text-[9px] font-bold text-emerald-600 uppercase">Live Now</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-8">
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <div className="w-12 h-6 bg-indigo-600 rounded-full relative p-1 cursor-pointer">
-                                                        <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-gray-400">Public</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="hidden sm:flex -space-x-2">
+                                                    <div className="w-6 h-6 rounded-lg bg-indigo-100 border-2 border-white flex items-center justify-center text-[8px] font-bold">SA</div>
+                                                    <div className="w-6 h-6 rounded-lg bg-emerald-100 border-2 border-white flex items-center justify-center text-[8px] font-bold">CH</div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <button className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors">✏️</button>
-                                                    <button onClick={() => handleDelete("SPORT", sport.id, sport.name)} className="p-2 hover:bg-rose-50 rounded-lg text-rose-400 transition-colors">🗑️</button>
+                                                <div className="flex items-center gap-1">
+                                                    <button className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 transition-colors">✏️</button>
+                                                    <button onClick={() => handleDelete("SPORT", sport.id, sport.name)} className="p-2 hover:bg-rose-50 rounded-xl text-rose-400 transition-colors">🗑️</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -298,6 +319,7 @@ export default function AdminDashboard() {
                             rows={sports}
                             isPending={isPending}
                             onDelete={(id, name) => handleDelete("SPORT", id, name)}
+                            onToggleStatus={handleToggleStatus}
                         />
                     )}
 
@@ -341,16 +363,28 @@ export default function AdminDashboard() {
                 </div>
             </main>
 
-            {/* Slide-in panel remains but updated for new UI */}
+            {/* Centered Modal Popup */}
             {showPanel && (
-                <div className="fixed inset-0 z-50 flex">
-                    <div className="flex-1 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setShowPanel(false)} />
-                    <div className="w-full max-w-md bg-white shadow-2xl flex flex-col p-8 border-l border-gray-100">
-                        <div className="flex items-center justify-between mb-10">
-                            <h2 className="text-2xl font-black text-gray-900">{panelTitle}</h2>
-                            <button onClick={() => setShowPanel(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-colors">✕</button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowPanel(false)} />
+                    
+                    {/* Modal Content */}
+                    <div className="relative w-full max-w-lg bg-white shadow-2xl rounded-[32px] flex flex-col p-8 border border-white/20 transform transition-all animate-in fade-in zoom-in duration-300">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-2xl font-black text-gray-900">{panelTitle}</h2>
+                                <p className="text-xs text-gray-400 font-medium mt-1">Please fill in the details below</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowPanel(false)} 
+                                className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all font-bold"
+                            >
+                                ✕
+                            </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        
+                        <div className="flex-1 overflow-y-auto max-h-[70vh] custom-scrollbar pr-2">
                             {panelType === 'ASSIGN' ? (
                                 <AssignSportForm user={editingUser} userType={activeTab === "Coaches" ? "COACH" : "SUB_ADMIN"} allSports={sports} onSuccess={handleSuccess} />
                             ) : panelType === 'EDIT_STUDENT' ? (
@@ -374,14 +408,14 @@ export default function AdminDashboard() {
 
 function StatCard({ label, value, color, bg, icon, subText }) {
     return (
-        <div className={`rounded-[28px] ${bg} p-7 flex flex-col gap-4 shadow-sm border border-gray-50 transition-transform hover:-translate-y-1`}>
-            <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl">{icon}</div>
-                <div className={`text-3xl font-black ${color}`}>{value}</div>
-            </div>
-            <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</p>
-                <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase">{subText}</p>
+        <div className={`rounded-3xl ${bg} p-5 flex items-center gap-5 shadow-sm border border-white/40 transition-all hover:shadow-xl hover:-translate-y-1 group`}>
+            <div className="w-12 h-12 rounded-2xl bg-white/80 shadow-sm flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">{icon}</div>
+            <div className="flex-1">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
+                <div className={`text-2xl font-black ${color} flex items-baseline gap-2`}>
+                    {value}
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{subText.split(' ')[0]}</span>
+                </div>
             </div>
         </div>
     );
@@ -457,7 +491,7 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
     );
 }
 
-function SportsTable({ rows, isPending, onDelete }) {
+function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
     return (
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
             <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">University Sports</h2>
@@ -478,7 +512,9 @@ function SportsTable({ rows, isPending, onDelete }) {
                                     </div>
                                     <div>
                                         <h4 className="font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{row.name}</h4>
-                                        <span className="text-[10px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Active Dept</span>
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${row.status === "ACTIVE" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+                                           {row.status} DEPT
+                                        </span>
                                     </div>
                                 </div>
                                 <button onClick={() => onDelete(row.id, row.name)} className="text-gray-300 hover:text-rose-500 transition-colors">🗑️</button>
@@ -502,9 +538,12 @@ function SportsTable({ rows, isPending, onDelete }) {
                                     >
                                         View Profile
                                     </Link>
-                                    <div className="w-10 h-6 bg-indigo-600 rounded-full relative p-1">
-                                        <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
-                                    </div>
+                                    <button 
+                                        onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
+                                        className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${row.status === "ACTIVE" ? "bg-indigo-600" : "bg-gray-300"}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${row.status === "ACTIVE" ? "right-1" : "left-1"}`}></div>
+                                    </button>
                                 </div>
                             </div>
                         </div>

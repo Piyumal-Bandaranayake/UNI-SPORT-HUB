@@ -12,10 +12,16 @@ export default function AssignSportForm({ user, userType, allSports, onSuccess }
     const [success, setSuccess] = useState("");
 
     const handleToggle = (sportName) => {
-        if (selectedSports.includes(sportName)) {
-            setSelectedSports(selectedSports.filter(s => s !== sportName));
+        if (userType === "COACH") {
+            // Coaches can only have ONE sport
+            setSelectedSports([sportName]);
         } else {
-            setSelectedSports([...selectedSports, sportName]);
+            // Sub-Admins can manage MANY sports
+            if (selectedSports.includes(sportName)) {
+                setSelectedSports(selectedSports.filter(s => s !== sportName));
+            } else {
+                setSelectedSports([...selectedSports, sportName]);
+            }
         }
     };
 
@@ -31,7 +37,7 @@ export default function AssignSportForm({ user, userType, allSports, onSuccess }
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     type: userType,
-                    universityId: user.universityId,
+                    email: user.email,
                     sports: selectedSports
                 })
             });
@@ -52,9 +58,10 @@ export default function AssignSportForm({ user, userType, allSports, onSuccess }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="mb-4">
-                <p className="text-sm text-gray-600">Assign sports to <span className="font-semibold">{user.name}</span> ({user.universityId})</p>
-            </div>
+        <div className="mb-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Target Identity</p>
+            <p className="text-sm font-bold text-gray-900 mt-1">{user.name} <span className="text-indigo-600 font-normal">({user.email})</span></p>
+        </div>
 
             {error && <div className="p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded">{error}</div>}
             {success && <div className="p-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded">{success}</div>}
@@ -64,14 +71,20 @@ export default function AssignSportForm({ user, userType, allSports, onSuccess }
                     <p className="text-sm text-gray-400 italic">No sports available. Create some first.</p>
                 ) : (
                     allSports.map(sport => (
-                        <label key={sport.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <label key={sport.id || sport._id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-gray-100 group">
                             <input
-                                type="checkbox"
+                                type={userType === "COACH" ? "radio" : "checkbox"}
+                                name="sport-selection"
                                 checked={selectedSports.includes(sport.name)}
                                 onChange={() => handleToggle(sport.name)}
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="w-4 h-4 rounded-full border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                             />
-                            <span className="text-sm font-medium text-gray-700">{sport.name}</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">{sport.name}</span>
+                                {userType === "COACH" && selectedSports.includes(sport.name) && (
+                                    <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-0.5">Primary Specialization</span>
+                                )}
+                            </div>
                         </label>
                     ))
                 )}
