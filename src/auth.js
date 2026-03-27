@@ -75,7 +75,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 return {
                     id: userFound._id.toString(),
                     name: userFound.name,
-                    universityId: userFound.universityId,
+                    universityId: userFound.universityId || userFound.universityEmail || userFound.email,
+                    universityEmail: userFound.universityEmail || userFound.email,
                     role: userRole,
                 };
             },

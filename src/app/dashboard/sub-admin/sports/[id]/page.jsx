@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { SPORT_EQUIPMENT_MAP, UNIVERSAL_CATEGORIES } from "@/lib/sportConfig";
 
 const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Sport Overview" },
@@ -34,12 +35,15 @@ export default function SportManagementDashboard() {
     const [showAddEventModal, setShowAddEventModal] = useState(false);
     const [showParticipantsModal, setShowParticipantsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [editingItem, setEditingItem] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     
     // Updates State
     const [updateData, setUpdateData] = useState({ name: "", description: "", image: "" });
     const [updateStatus, setUpdateStatus] = useState({ loading: false, uploadLoading: false, error: "", success: "" });
 
-    const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD" });
+    const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD", image: "" });
+    const [customItemName, setCustomItemName] = useState("");
     const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
 
     useEffect(() => {
@@ -123,20 +127,36 @@ export default function SportManagementDashboard() {
 
     const handleAddItem = async (e) => {
         e.preventDefault();
+        setUpdateStatus({ ...updateStatus, uploadLoading: true, error: "" });
         try {
+            const finalName = newItem.name === "Custom Gear" ? customItemName : newItem.name;
+            if (!finalName) throw new Error("Please provide an item name.");
+
+            let imageUrl = newItem.image;
+            if (imageUrl && imageUrl.startsWith("data:image")) {
+                imageUrl = await uploadToCloudinary(imageUrl, `inventory/${sport.name}`);
+            }
+
             const res = await fetch("/api/user/inventory", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...newItem, sportId: sport.id }),
+                body: JSON.stringify({ ...newItem, name: finalName, image: imageUrl, sportId: sport.id }),
             });
+
             if (res.ok) {
                 const addedItem = await res.json();
                 setInventory([addedItem, ...inventory]);
                 setShowAddModal(false);
-                setNewItem({ name: "", category: "", quantity: 0, condition: "GOOD" });
+                setNewItem({ name: "", category: "", quantity: 0, condition: "GOOD", image: "" });
+                setCustomItemName("");
+                setUpdateStatus({ ...updateStatus, uploadLoading: false });
+            } else {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to add item");
             }
         } catch (err) {
             console.error("Failed to add item:", err);
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: err.message || "Failed to catalyze inventory item." });
         }
     };
 
@@ -170,6 +190,40 @@ export default function SportManagementDashboard() {
             }
         } catch (err) {
             console.error("Failed to update quantity:", err);
+        }
+    };
+
+    const handleUpdateItem = async (e) => {
+        e.preventDefault();
+        setUpdateStatus({ ...updateStatus, uploadLoading: true, error: "" });
+        try {
+            const finalName = editingItem.name === "Custom Gear" ? customItemName : editingItem.name;
+            
+            let imageUrl = editingItem.image;
+            if (imageUrl && imageUrl.startsWith("data:image")) {
+                imageUrl = await uploadToCloudinary(imageUrl, `inventory/${sport.name}`);
+            }
+
+            const res = await fetch("/api/user/inventory", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...editingItem, name: finalName, image: imageUrl, id: editingItem._id }),
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setInventory(inventory.map(item => item._id === updated._id ? updated : item));
+                setIsEditModalOpen(false);
+                setEditingItem(null);
+                setCustomItemName("");
+                setUpdateStatus({ ...updateStatus, uploadLoading: false });
+            } else {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to update item");
+            }
+        } catch (err) {
+            console.error("Failed to update item:", err);
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: err.message || "A technical error occurred during update." });
         }
     };
 
@@ -896,48 +950,74 @@ export default function SportManagementDashboard() {
                             ) : inventory.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {inventory.map((item) => (
-                                        <div key={item._id} className="p-6 bg-[#FAFBFD] rounded-[32px] border border-gray-50 group hover:border-amber-100 transition-all relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all">
+                                        <div key={item._id} className="bg-white rounded-[32px] border border-gray-100 group transition-all hover:shadow-2xl hover:shadow-amber-100/30 relative overflow-hidden flex flex-col h-full">
+                                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-all flex gap-2">
+                                                <button 
+                                                    onClick={() => {
+                                                        const isStandard = (SPORT_EQUIPMENT_MAP[sport.name.toUpperCase()] || []).includes(item.name);
+                                                        setEditingItem(item);
+                                                        setCustomItemName(isStandard ? "" : item.name);
+                                                        setIsEditModalOpen(true);
+                                                    }}
+                                                    className="w-10 h-10 rounded-2xl bg-white/90 text-sky-600 flex items-center justify-center text-lg backdrop-blur shadow-sm hover:bg-sky-50 transition-all"
+                                                >
+                                                    ✏️
+                                                </button>
                                                 <button 
                                                     onClick={() => handleDeleteItem(item._id)}
-                                                    className="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xs"
+                                                    className="w-10 h-10 rounded-2xl bg-white/90 text-rose-500 flex items-center justify-center text-lg backdrop-blur shadow-sm hover:bg-rose-50 transition-all"
                                                 >
                                                     🗑️
                                                 </button>
                                             </div>
 
-                                            <div className="flex gap-4 mb-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-2xl border border-gray-50">
-                                                    {item.category === "UNIFORM" ? "👕" : item.category === "SAFETY" ? "🛡️" : "🏸"}
-                                                </div>
-                                                <div>
-                                                    <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">{item.category}</div>
-                                                    <h4 className="font-bold text-gray-900">{item.name}</h4>
+                                            <div className="h-44 bg-gray-50 relative overflow-hidden">
+                                                {item.image ? (
+                                                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-5xl opacity-40">
+                                                        {item.name.toLowerCase().includes("ball") ? "⚽" : 
+                                                         item.name.toLowerCase().includes("bat") ? "🏏" :
+                                                         item.name.toLowerCase().includes("racket") ? "🏸" :
+                                                         item.name.toLowerCase().includes("shoe") || item.name.toLowerCase().includes("spike") ? "👟" :
+                                                         item.name.toLowerCase().includes("jersey") || item.category === "UNIFORM" ? "👕" :
+                                                         item.name.toLowerCase().includes("helmet") || item.category === "SAFETY" ? "🛡️" : 
+                                                         "📦"}
+                                                    </div>
+                                                )}
+                                                <div className="absolute top-4 left-4">
+                                                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md border ${
+                                                        item.condition === "GOOD" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                                        item.condition === "WORN" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                                                        "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                                    }`}>
+                                                        {item.condition}
+                                                    </span>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between mb-4">
-                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quantity</span>
-                                                <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
-                                                    <button 
-                                                        onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
-                                                        className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all"
-                                                    >-</button>
-                                                    <span className="text-xs font-black text-gray-900 w-4 text-center">{item.quantity}</span>
-                                                    <button 
-                                                        onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
-                                                        className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 transition-all"
-                                                    >+</button>
+                                            <div className="p-6 flex-1 flex flex-col">
+                                                <div className="mb-6">
+                                                    <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1.5">{item.category}</div>
+                                                    <h4 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors uppercase tracking-tight">{item.name}</h4>
                                                 </div>
-                                            </div>
 
-                                            <div className="flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white/50 p-3 rounded-xl border border-gray-50">
-                                                <span>Condition</span>
-                                                <span className={`px-2 py-0.5 rounded-md ${
-                                                    item.condition === "GOOD" ? "text-emerald-600" :
-                                                    item.condition === "WORN" ? "text-amber-600" :
-                                                    "text-rose-600"
-                                                }`}>{item.condition}</span>
+                                                <div className="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Stock</span>
+                                                        <span className="text-lg font-black text-gray-900 leading-none">{item.quantity}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                                                        <button 
+                                                            onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
+                                                            className="w-8 h-8 rounded-xl bg-white text-gray-400 hover:text-rose-500 transition-all font-black shadow-sm"
+                                                        >-</button>
+                                                        <button 
+                                                            onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
+                                                            className="w-8 h-8 rounded-xl bg-white text-gray-400 hover:text-emerald-500 transition-all font-black shadow-sm"
+                                                        >+</button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -965,14 +1045,28 @@ export default function SportManagementDashboard() {
                                         </div>
                                         <form onSubmit={handleAddItem} className="space-y-6">
                                             <div>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Item Name</label>
-                                                <input 
-                                                    type="text" required
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Item Type / Name</label>
+                                                <select 
+                                                    required
                                                     value={newItem.name}
                                                     onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none" 
-                                                    placeholder="e.g. Wilson Pro Staff"
-                                                />
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
+                                                >
+                                                    <option value="">Select Equipment</option>
+                                                    {sport && (SPORT_EQUIPMENT_MAP[sport.name.toUpperCase()] || []).map(item => (
+                                                        <option key={item} value={item}>{item}</option>
+                                                    ))}
+                                                    <option value="Custom Gear">Other / Custom Gear</option>
+                                                </select>
+                                                {newItem.name === "Custom Gear" && (
+                                                    <input 
+                                                        type="text" required
+                                                        className="mt-3 w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none animate-in fade-in" 
+                                                        placeholder="Specify item name..."
+                                                        value={customItemName}
+                                                        onChange={(e) => setCustomItemName(e.target.value)}
+                                                    />
+                                                )}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
@@ -983,26 +1077,57 @@ export default function SportManagementDashboard() {
                                                         className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
                                                     >
                                                         <option value="">Select Category</option>
-                                                        <option value="EQUIPMENT">Equipment</option>
-                                                        <option value="UNIFORM">Uniform</option>
-                                                        <option value="SAFETY">Safety Gear</option>
+                                                        {UNIVERSAL_CATEGORIES.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Initial Stock</label>
                                                     <input 
                                                         type="number" required min="0"
-                                                        value={newItem.quantity}
-                                                        onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value)})}
+                                                        value={newItem.quantity === 0 ? "" : newItem.quantity}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setNewItem({...newItem, quantity: val === "" ? 0 : parseInt(val)})
+                                                        }}
+                                                        placeholder="0"
                                                         className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Equipment Visual / Photo</label>
+                                                <div className="relative h-32 w-full bg-gray-50 rounded-[20px] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden hover:border-sky-200 transition-all cursor-pointer">
+                                                    {newItem.image ? (
+                                                        <img src={newItem.image} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="text-center">
+                                                            <div className="text-2xl">📸</div>
+                                                            <span className="text-[9px] font-black text-gray-400 uppercase">Upload Gear Photo</span>
+                                                        </div>
+                                                    )}
+                                                    <input 
+                                                        type="file" accept="image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => setNewItem({...newItem, image: reader.result});
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                                                     />
                                                 </div>
                                             </div>
                                             <button 
                                                 type="submit"
-                                                className="w-full bg-sky-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all pt-4"
+                                                disabled={updateStatus.uploadLoading}
+                                                className="w-full bg-sky-600 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all pt-4 disabled:opacity-50"
                                             >
-                                                Catalog Item
+                                                {updateStatus.uploadLoading ? "Uploading Asset..." : "Catalog Item"}
                                             </button>
                                         </form>
                                     </div>

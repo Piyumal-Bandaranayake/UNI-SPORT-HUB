@@ -24,7 +24,7 @@ export async function GET() {
             status: s.status,
             approvedSports: s.approvedSports || [],
             sportRequests: s.sportRequests || [],
-            createdAt: s.createdAt.toISOString(),
+            createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
         }));
 
         return NextResponse.json(formatted);

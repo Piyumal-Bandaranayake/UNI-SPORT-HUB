@@ -33,8 +33,8 @@ export default function SubAdminDashboard() {
                 console.error("Failed to fetch data:", err);
             }
         };
-        fetchSportsAndRequests();
-    }, []);
+        if (session) fetchSportsAndRequests();
+    }, [session]);
 
     const fetchAllInventory = async (sportsList) => {
         setLoadingInventory(true);

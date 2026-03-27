@@ -21,6 +21,17 @@
 # testing
 /coverage
 /__snapshots__/
+/__tests__/
+*.test.js
+*.spec.js
+*.test.jsx
+*.spec.jsx
+*.test.ts
+*.spec.ts
+*.test.tsx
+*.spec.tsx
+/tmp/
+/tests/
 
 # debug
 *.log

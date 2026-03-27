@@ -42,8 +42,8 @@ export default function GlobalCoachesPage() {
                 setLoading(false);
             }
         };
-        fetchAllData();
-    }, []);
+        if (session) fetchAllData();
+    }, [session]);
 
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>

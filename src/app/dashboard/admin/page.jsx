@@ -57,8 +57,8 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => {
-        fetchAll();
-    }, []);
+        if (session) fetchAll();
+    }, [session]);
 
     const handleSuccess = () => {
         setShowPanel(false);

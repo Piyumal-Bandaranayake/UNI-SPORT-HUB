@@ -15,6 +15,7 @@ export const authConfig = {
                 token.id = user.id;
                 token.role = user.role;
                 token.universityId = user.universityId;
+                token.universityEmail = user.universityEmail;
                 token.name = user.name;
                 token.tokenExpiry = Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS;
             }
@@ -33,6 +34,7 @@ export const authConfig = {
                 session.user.id = token.id;
                 session.user.role = token.role;
                 session.user.universityId = token.universityId;
+                session.user.universityEmail = token.universityEmail;
                 session.user.name = token.name;
                 // Expose expiry to the client so the UI can warn the user
                 session.tokenExpiry = token.tokenExpiry;

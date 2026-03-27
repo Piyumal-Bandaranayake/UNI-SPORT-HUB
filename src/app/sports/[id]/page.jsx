@@ -96,6 +96,7 @@ export default async function SportProfile({ params }) {
                                     desc="Borrow rackets, balls, and other essential sports gear."
                                     price="Deposit Required"
                                     tag="Gear"
+                                    href={`/sports/${id}/equipment`}
                                 />
                             </div>
                         </section>
@@ -173,9 +174,9 @@ export default async function SportProfile({ params }) {
     );
 }
 
-function BookingCard({ icon, title, desc, price, tag }) {
-    return (
-        <div className="bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all group cursor-pointer hover:-translate-y-1">
+function BookingCard({ icon, title, desc, price, tag, href }) {
+    const CardContent = (
+        <div className="bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all group cursor-pointer hover:-translate-y-1 h-full">
             <div className="flex justify-between items-start mb-4">
                 <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
                     {icon}
@@ -186,12 +187,22 @@ function BookingCard({ icon, title, desc, price, tag }) {
             </div>
             <h4 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{title}</h4>
             <p className="text-gray-500 text-xs mb-6 line-clamp-2">{desc}</p>
-            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-50 mt-auto">
                 <span className="text-sm font-black text-indigo-600">{price}</span>
-                <button className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                <div className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                     Book Now
-                </button>
+                </div>
             </div>
         </div>
     );
+
+    if (href) {
+        return (
+            <Link href={href}>
+                {CardContent}
+            </Link>
+        );
+    }
+
+    return CardContent;
 }
