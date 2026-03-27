@@ -22,4 +22,4 @@ export async function GET(req) {
         console.error("Fetch bookings error:", error);
         return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
     }
-});
+}
