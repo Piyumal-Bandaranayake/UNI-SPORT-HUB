@@ -7,8 +7,6 @@ import Link from "next/link";
 const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Overview" },
     { id: "Management", icon: "🏢", label: "Dept Management" },
-    { id: "Requests", icon: "📥", label: "Team Requests" },
-    { id: "Coaches", icon: "👨‍🏫", label: "Coaches", href: "/dashboard/sub-admin/sports" },
     { id: "Equipment", icon: "🏸", label: "Equipment Tracking" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
@@ -17,7 +15,6 @@ export default function SubAdminDashboard() {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
-    const [requests, setRequests] = useState([]);
     const [inventoryData, setInventoryData] = useState({});
     const [loadingInventory, setLoadingInventory] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -25,20 +22,12 @@ export default function SubAdminDashboard() {
     useEffect(() => {
         const fetchSportsAndRequests = async () => {
             try {
-                const [sportsRes, requestsRes] = await Promise.all([
-                    fetch("/api/user/assigned-sports"),
-                    fetch("/api/sub-admin/requests")
-                ]);
+                const sportsRes = await fetch("/api/user/assigned-sports");
                 
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
                     setSports(data);
                     fetchAllInventory(data);
-                }
-                
-                if (requestsRes.ok) {
-                    const reqData = await requestsRes.json();
-                    setRequests(reqData);
                 }
             } catch (err) {
                 console.error("Failed to fetch data:", err);
@@ -85,23 +74,7 @@ export default function SubAdminDashboard() {
         }
     };
 
-    const handleRequestAction = async (requestId, action) => {
-        try {
-            const res = await fetch(`/api/sub-admin/requests/${requestId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: action })
-            });
 
-            if (res.ok) {
-                setRequests(prev => prev.filter(r => r._id !== requestId));
-            } else {
-                alert(`Failed to ${action} request`);
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
 
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
@@ -218,44 +191,99 @@ export default function SubAdminDashboard() {
                 <div className="space-y-10">
                     {activeTab === "Overview" && (
                         <>
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                                 <StatCard label="Managed Depts" value={sports.length} color="text-sky-700" bg="bg-[#F0F9FF]" icon="🏢" subText="Assigned sports" />
                                 <StatCard 
                                     label="Equipment Items" 
                                     value={Object.values(inventoryData).flat().length} 
                                     color="text-amber-700" bg="bg-[#FFFBEB]" icon="🏸" subText="Total in inventory" 
                                 />
+                                <StatCard label="Notifications" value={Object.values(inventoryData).flat().filter(i => i.quantity < 10).length} color="text-rose-700" bg="bg-[#FFF1F2]" icon="🔔" subText="New alerts" />
                                 <StatCard label="Active Status" value="Online" color="text-emerald-700" bg="bg-[#ECFDF5]" icon="✅" subText="System operational" />
                             </div>
 
-                            <div className="mt-12">
-                                <h3 className="text-lg font-black text-gray-900 mb-8">Department Overview</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {sports.map((sport) => (
-                                        <div key={sport.id} className="bg-white p-6 rounded-[28px] border border-gray-50 group hover:shadow-md transition-all">
-                                            <div className="flex items-center justify-between mb-6">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xl">
-                                                        {sport.name.substring(0, 2).toUpperCase()}
+                            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                <div className="lg:col-span-2">
+                                    <h3 className="text-lg font-black text-gray-900 mb-8 flex items-center justify-between uppercase tracking-tight">
+                                        Department Overview
+                                        <button onClick={() => setActiveTab("Management")} className="text-sky-600 text-[10px] font-black uppercase tracking-widest hover:underline">View All Assets</button>
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {sports.map((sport) => (
+                                            <div key={sport.id} className="bg-white p-6 rounded-[28px] border border-gray-50 group hover:shadow-xl hover:shadow-sky-100/50 transition-all border-b-4 border-b-transparent hover:border-b-sky-500">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xl group-hover:bg-sky-600 group-hover:text-white transition-all">
+                                                            {sport.name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-gray-900 uppercase tracking-tight">{sport.name}</h4>
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Assigned Sport</span>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-gray-900 uppercase tracking-tight">{sport.name}</h4>
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Assigned Sport</span>
-                                                    </div>
+                                                    <Link href={`/sports/${sport.id}`} target="_blank" className="text-[10px] font-black uppercase text-gray-300 hover:text-sky-600 transition-colors">
+                                                        View ↗
+                                                    </Link>
                                                 </div>
-                                                <Link href={`/sports/${sport.id}`} target="_blank" className="text-[10px] font-black uppercase text-gray-400 hover:text-sky-600 flex items-center gap-1 transition-all">
-                                                    Public View ↗
+                                                
+                                                <Link 
+                                                    href={`/dashboard/sub-admin/sports/${sport.id}`} 
+                                                    className="w-full bg-gray-900 text-white py-3 rounded-2xl text-[10px] font-black uppercase text-center block hover:bg-sky-600 transition-all shadow-lg shadow-gray-100"
+                                                >
+                                                    Management Console
                                                 </Link>
                                             </div>
-                                            
-                                            <Link 
-                                                href={`/dashboard/sub-admin/sports/${sport.id}`} 
-                                                className="w-full bg-gray-900 text-white py-3 rounded-2xl text-[10px] font-black uppercase text-center block hover:bg-sky-600 transition-all shadow-lg shadow-gray-100"
-                                            >
-                                                Manage Dashboard
-                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                                    <h3 className="text-lg font-black text-gray-900 mb-8 flex items-center gap-2 uppercase tracking-tight">
+                                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                        Recent Notifications
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {/* Dynamic Low Stock Alerts */}
+                                        {Object.entries(inventoryData).flatMap(([sportId, items]) => 
+                                            items.filter(i => i.quantity < 10).map(item => ({
+                                                id: item._id,
+                                                type: "STOCK",
+                                                title: `${item.name} Low Stock`,
+                                                desc: `${sports.find(s => s.id === sportId)?.name} • ${item.quantity} units rem.`,
+                                                icon: "⚠️",
+                                                color: "text-rose-600",
+                                                bg: "bg-rose-50",
+                                                border: "border-rose-100"
+                                            }))
+                                        ).slice(0, 4).map((note, idx) => (
+                                            <div key={idx} className={`p-4 rounded-2xl border ${note.border} ${note.bg} flex items-center gap-4 transition-transform hover:scale-[1.02] shadow-sm`}>
+                                                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shadow-sm">{note.icon}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`text-xs font-black ${note.color} uppercase truncate`}>{note.title}</div>
+                                                    <div className="text-[10px] text-gray-500 font-medium truncate italic">{note.desc}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Static Default Notifications */}
+                                        <div className="p-4 rounded-2xl border border-sky-100 bg-sky-50/50 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shadow-sm">🛡️</div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-black text-sky-700 uppercase">System Active</div>
+                                                <div className="text-[10px] text-gray-500 font-medium font-bold italic">Dashboard monitor on.</div>
+                                            </div>
                                         </div>
-                                    ))}
+
+                                        {Object.values(inventoryData).flat().filter(i => i.quantity < 10).length === 0 && (
+                                            <div className="py-6 text-center border-2 border-dashed border-gray-100 rounded-3xl">
+                                                <div className="text-2xl mb-2">🎈</div>
+                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No Priority Alerts</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button className="w-full mt-6 py-3 border border-gray-100 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:bg-gray-50 transition-all tracking-widest">
+                                        Clear History
+                                    </button>
                                 </div>
                             </div>
                         </>
@@ -278,7 +306,12 @@ export default function SubAdminDashboard() {
                                              >
                                                 Open Management Dashboard
                                              </Link>
-                                             <button onClick={() => setActiveTab("Requests")} className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all">View Applications</button>
+                                             <button 
+                                                onClick={() => setActiveTab("Management")} 
+                                                className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all"
+                                             >
+                                                View Management
+                                             </button>
                                          </div>
                                     </div>
                                 )) : <div className="text-gray-400 italic py-10 text-center col-span-2">No departments assigned to you.</div>}
@@ -286,64 +319,7 @@ export default function SubAdminDashboard() {
                          </div>
                     )}
 
-                    {activeTab === "Requests" && (
-                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">
-                            <h3 className="text-xl font-black text-gray-900 mb-8 underline decoration-emerald-200 underline-offset-8 decoration-4">Team Requests</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {requests.length > 0 ? requests.map((req) => (
-                                    <div key={req._id} className="p-6 bg-[#FAFBFD] rounded-[28px] border border-gray-50 flex flex-col justify-between">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h4 className="font-bold text-gray-900">{req.studentId?.name || "Student"}</h4>
-                                                <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase">{req.sportId?.name || "Sport"}</span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 mb-4">{req.studentId?.universityId} | {req.studentId?.universityEmail}</p>
-                                            <div className="bg-white p-4 rounded-xl border border-gray-100 mb-4 shadow-sm">
-                                                <p className="text-sm text-gray-700 italic">"{req.details}"</p>
-                                            </div>
 
-                                            {req.certificates && req.certificates.length > 0 && (
-                                                <div className="mb-6">
-                                                    <h5 className="text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Qualifications</h5>
-                                                    <div className="flex gap-2 overflow-x-auto pb-2">
-                                                        {req.certificates.map((cert, idx) => {
-                                                            const isPdf = cert.startsWith("data:application/pdf");
-                                                            return (
-                                                                <a 
-                                                                    key={idx} 
-                                                                    href={cert} 
-                                                                    target="_blank" 
-                                                                    rel="noreferrer"
-                                                                    download={`qualification_${req.studentId?.name || "student"}_${idx}`}
-                                                                    className="flex-shrink-0 w-16 h-16 rounded-xl border border-gray-200 overflow-hidden relative group hover:border-emerald-500 transition-colors bg-white block"
-                                                                >
-                                                                    {isPdf ? (
-                                                                        <div className="w-full h-full bg-rose-50 flex flex-col items-center justify-center text-rose-500 font-black text-[10px] uppercase">
-                                                                            <span>📄</span>
-                                                                            <span>PDF</span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <img src={cert} alt="Qualification" className="w-full h-full object-cover" />
-                                                                    )}
-                                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Open</span>
-                                                                    </div>
-                                                                </a>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-3">
-                                            <button onClick={() => handleRequestAction(req._id, "ACCEPTED")} className="flex-1 bg-gray-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-colors">Accept</button>
-                                            <button onClick={() => handleRequestAction(req._id, "REJECTED")} className="flex-1 bg-rose-50 text-rose-600 py-3 rounded-xl text-xs font-bold hover:bg-rose-100 transition-colors">Reject</button>
-                                        </div>
-                                    </div>
-                                )) : <div className="text-gray-400 italic py-10 text-center col-span-2">No pending requests.</div>}
-                            </div>
-                         </div>
-                    )}
 
                     {activeTab === "Equipment" && (
                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">

@@ -443,7 +443,7 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
                             <tr>
                                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">#</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Name</th>
-                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">ID</th>
+                                <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Email Address</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Departments</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                                 <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Actions</th>
@@ -454,9 +454,11 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
                                 <tr key={row.id} className="hover:bg-[#FAFBFD] transition-colors group">
                                     <td className="px-6 py-5 text-gray-400 font-bold">{i + 1}</td>
                                     <td className="px-6 py-5">
-                                        <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{row.name}</div>
+                                        <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{row.name}</div>
                                     </td>
-                                    <td className="px-6 py-5 font-mono text-xs text-gray-600 font-bold">{row.universityId}</td>
+                                    <td className="px-6 py-5">
+                                        <div className="text-xs text-gray-500 font-bold lowercase">{row.email}</div>
+                                    </td>
                                     <td className="px-6 py-5">
                                         <div className="flex flex-wrap gap-1">
                                             {(userType === "SUB_ADMIN" ? row.managedSports : row.assignedSports)?.length > 0 ? (

@@ -9,7 +9,7 @@ const MENU_ITEMS = [
     { id: "Departments", icon: "🏸", label: "My Departments" },
     { id: "Schedule", icon: "📅", label: "Training Schedule" },
     { id: "Exercise", icon: "💪", label: "Exercise Schedule" },
-    { id: "Students", icon: "🎓", label: "Athletes" },
+    { id: "Achievements", icon: "🏆", label: "Achievements" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
 
@@ -19,9 +19,14 @@ export default function CoachDashboard() {
     const [sports, setSports] = useState([]);
     const [schedules, setSchedules] = useState([]);
     const [exerciseRequests, setExerciseRequests] = useState([]);
+    const [achievements, setAchievements] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAchievementModalOpen, setIsAchievementModalOpen] = useState(false);
     const [formData, setFormData] = useState({ sportName: '', date: '', time: '', location: '', activity: '' });
+    const [achievementData, setAchievementData] = useState({ title: '', description: '', date: '', image: '', sportName: '' });
+    const [achievementStatus, setAchievementStatus] = useState({ error: '', success: '' });
     const [isPending, startTransition] = useTransition();
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         const fetchSports = async () => {
@@ -57,9 +62,21 @@ export default function CoachDashboard() {
                 console.error("Failed to fetch exercise requests:", err);
             }
         };
+        const fetchAchievements = async () => {
+            try {
+                const res = await fetch("/api/user/achievements");
+                if (res.ok) {
+                    const data = await res.json();
+                    setAchievements(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch achievements:", err);
+            }
+        };
         fetchSports();
         fetchSchedules();
         fetchExerciseRequests();
+        fetchAchievements();
     }, []);
 
     const handleCreateSchedule = async (e) => {
@@ -106,6 +123,74 @@ export default function CoachDashboard() {
             }
         } catch (err) {
             console.error(`Error updating request ${id}:`, err);
+        }
+    };
+
+    const uploadToCloudinary = async (base64Image) => {
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: base64Image, folder: "achievements" }),
+            });
+            const data = await res.json();
+            if (res.ok) return data.url;
+            throw new Error(data.error || "Upload failed");
+        } catch (err) {
+            console.error("Cloudinary upload error:", err);
+            throw err;
+        }
+    };
+
+    const handleCreateAchievement = async (e) => {
+        e.preventDefault();
+        setAchievementStatus({ error: '', success: '' });
+        
+        // Basic Client Validation
+        if (!achievementData.title || !achievementData.description || !achievementData.date || !achievementData.image || !achievementData.sportName) {
+            setAchievementStatus({ ...achievementStatus, error: "Please provide all details including a team or trophy photo." });
+            return;
+        }
+
+        setUploading(true);
+        try {
+            let imageUrl = achievementData.image;
+            if (imageUrl && imageUrl.startsWith("data:image")) {
+                imageUrl = await uploadToCloudinary(imageUrl);
+            }
+
+            const res = await fetch("/api/user/achievements", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...achievementData, image: imageUrl })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setAchievements([{ id: data.achievementId, ...achievementData, image: imageUrl }, ...achievements]);
+                setIsAchievementModalOpen(false);
+                setAchievementData({ title: '', description: '', date: '', image: '', sportName: '' });
+                setAchievementStatus({ error: '', success: 'Achievement published successfully!' });
+            } else {
+                throw new Error(data.error || "Failed to publish achievement");
+            }
+        } catch (err) {
+            console.error("Error creating achievement:", err);
+            setAchievementStatus({ ...achievementStatus, error: err.message || "A technical error occurred while publishing." });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDeleteAchievement = async (id) => {
+        if (!confirm("Remove this achievement?")) return;
+        try {
+            const res = await fetch(`/api/user/achievements/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                setAchievements(achievements.filter(a => a.id !== id));
+            }
+        } catch (err) {
+            console.error("Error deleting achievement:", err);
         }
     };
 
@@ -212,7 +297,7 @@ export default function CoachDashboard() {
                         <>
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 <StatCard label="My Departments" value={sports.length} color="text-emerald-700" bg="bg-[#ECFDF5]" icon="🏸" subText="Managed teams" />
-                                <StatCard label="Total Athletes" value="0" color="text-sky-700" bg="bg-[#F0F9FF]" icon="🎓" subText="Across all sports" />
+                                <StatCard label="Achievements" value={achievements.length} color="text-sky-700" bg="bg-[#F0F9FF]" icon="🏆" subText="Success stories" />
                                 <StatCard label="Logged Hours" value="0" color="text-amber-700" bg="bg-[#FFFBEB]" icon="📅" subText="This month" />
                             </div>
 
@@ -357,13 +442,51 @@ export default function CoachDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Students" && (
-                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 mb-6 underline decoration-emerald-200 underline-offset-8 decoration-4">Team Rosters</h3>
-                            <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-gray-400">
-                                <p className="font-bold">No students registered in your departments yet.</p>
+                    {activeTab === "Achievements" && (
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-center mb-10">
+                                <h3 className="text-xl font-black text-gray-900 underline decoration-sky-200 underline-offset-8 decoration-4 uppercase tracking-tight">Achievements & Glory</h3>
+                                <button 
+                                    onClick={() => setIsAchievementModalOpen(true)}
+                                    className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg"
+                                >
+                                    + Add Achievement
+                                </button>
                             </div>
-                         </div>
+
+                            {achievements.length === 0 ? (
+                                <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                                    <div className="text-5xl mb-6">🏆</div>
+                                    <p className="text-gray-400 font-bold">No achievements recorded yet. Showcase your wins!</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {achievements.map((ach) => (
+                                        <div key={ach.id} className="bg-white rounded-[28px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col">
+                                            <div className="h-40 overflow-hidden relative">
+                                                <img src={ach.image} alt="Achievement" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <div className="absolute top-2 right-2 flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleDeleteAchievement(ach.id)}
+                                                        className="w-8 h-8 rounded-full bg-white/90 text-rose-500 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 flex-1 flex flex-col">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase">{ach.sportName}</span>
+                                                    <span className="text-[10px] font-bold text-gray-400">{ach.date}</span>
+                                                </div>
+                                                <h4 className="font-black text-gray-900 mb-2 truncate">{ach.title}</h4>
+                                                <p className="text-xs text-gray-500 line-clamp-2 italic">"{ach.description}"</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {activeTab === "Settings" && (
@@ -456,6 +579,113 @@ export default function CoachDashboard() {
                                         type="submit" 
                                         className="flex-[2] bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
                                         Create Schedule
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+                {/* Achievement Modal */}
+                {isAchievementModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl m-4 border border-gray-100 animate-in fade-in zoom-in duration-300">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-black text-gray-900">Publish Success</h3>
+                                <button onClick={() => {
+                                    setIsAchievementModalOpen(false);
+                                    setAchievementStatus({ error: '', success: '' });
+                                }} className="text-gray-400 hover:text-gray-900 transition-colors">✕</button>
+                            </div>
+
+                            {achievementStatus.error && (
+                                <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-[11px] font-black uppercase tracking-widest animate-in slide-in-from-top-2">
+                                    <span>⚠️</span> {achievementStatus.error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleCreateAchievement} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Sport Department</label>
+                                        <select 
+                                            required
+                                            value={achievementData.sportName}
+                                            onChange={(e) => setAchievementData({...achievementData, sportName: e.target.value})}
+                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50"
+                                        >
+                                            <option value="">Select Sport</option>
+                                            {sports.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Date Achieved</label>
+                                        <input 
+                                            type="date" required
+                                            value={achievementData.date}
+                                            onChange={(e) => setAchievementData({...achievementData, date: e.target.value})}
+                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Achievement Title</label>
+                                    <input 
+                                        type="text" required
+                                        placeholder="e.g. SLUG 2026 Gold Medal"
+                                        value={achievementData.title}
+                                        onChange={(e) => setAchievementData({...achievementData, title: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Short Description</label>
+                                    <textarea 
+                                        required rows={3}
+                                        placeholder="Tell us more about this win..."
+                                        value={achievementData.description}
+                                        onChange={(e) => setAchievementData({...achievementData, description: e.target.value})}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50 resize-none" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Trophy / Team Photo</label>
+                                    <div className="relative h-32 w-full bg-gray-50 rounded-[20px] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden hover:border-emerald-200 transition-all">
+                                        {achievementData.image ? (
+                                            <img src={achievementData.image} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="text-center">
+                                                <div className="text-2xl">📸</div>
+                                                <span className="text-[9px] font-black text-gray-400 uppercase">Upload Media</span>
+                                            </div>
+                                        )}
+                                        <input 
+                                            type="file" required accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setAchievementData({...achievementData, image: reader.result});
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-4 mt-8 border-t border-gray-50">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsAchievementModalOpen(false)}
+                                        className="flex-1 py-4 rounded-2xl font-bold text-sm text-gray-400 hover:bg-gray-50 transition-all">
+                                        Back
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={uploading}
+                                        className="flex-[2] bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                    >
+                                        {uploading ? "Publishing Media..." : "Share Achievement"}
                                     </button>
                                 </div>
                             </form>

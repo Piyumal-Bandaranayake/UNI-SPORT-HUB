@@ -83,15 +83,6 @@ export async function POST(req) {
         // 4. Create User
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Proactive Dispatch: Verify email delivery before final creation
-        const emailStatus = await sendStudentWelcome(trimmedEmail, name, trimmedId);
-        
-        if (!emailStatus.success) {
-            return NextResponse.json({ 
-                error: "Your email is not valid. Please enter a correct email address to continue." 
-            }, { status: 400 });
-        }
-
         const newStudent = new Student({
             name,
             universityId: trimmedId,
@@ -102,7 +93,7 @@ export async function POST(req) {
 
         await newStudent.save();
 
-        return NextResponse.json({ success: "Student registered successfully. Welcome email sent!" }, { status: 201 });
+        return NextResponse.json({ success: "Student registered successfully. Welcome to UniSportHub!" }, { status: 201 });
 
     } catch (error) {
         console.error("Registration API error:", error);
