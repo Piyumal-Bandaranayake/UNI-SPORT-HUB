@@ -18,12 +18,12 @@ export async function GET() {
         let sportNames = [];
 
         if (role === "COACH") {
-            const coach = await Coach.findOne({ universityId }, "assignedSports").lean();
+            const coach = await Coach.findOne({ email: universityId }, "assignedSports").lean();
             if (coach) {
                 sportNames = coach.assignedSports || [];
             }
         } else if (role === "SUB_ADMIN") {
-            const subAdmin = await SubAdmin.findOne({ universityId }, "managedSports").lean();
+            const subAdmin = await SubAdmin.findOne({ email: universityId }, "managedSports").lean();
             if (subAdmin) {
                 sportNames = subAdmin.managedSports || [];
             }

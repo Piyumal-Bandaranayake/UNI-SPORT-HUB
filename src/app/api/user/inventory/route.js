@@ -4,6 +4,14 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 // GET: Fetch inventory for a specific sport
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
+};
+
 export async function GET(req) {
     try {
         const session = await auth();
@@ -43,7 +51,7 @@ export async function POST(req) {
         const newItem = await Equipment.create({
             ...data,
             available: quantity,
-            lastUpdatedBy: session.user.universityId
+            lastUpdatedBy: session.user.universityId || session.user.email || "SYSTEM"
         });
 
         return NextResponse.json(newItem, { status: 201 });

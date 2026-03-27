@@ -56,7 +56,7 @@ export async function POST(req) {
             date,
             image,
             sportName,
-            coachUniversityId: universityId
+            coachUniversityId: universityId || session.user.email || "COACH"
         });
 
         return NextResponse.json({ message: "Achievement published!", achievementId: newAchievement._id }, { status: 201 });
