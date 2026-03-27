@@ -10,7 +10,6 @@ const MENU_ITEMS = [
     { id: "Members", icon: "👥", label: "Members" },
     { id: "Events", icon: "📅", label: "Events" },
     { id: "Equipment", icon: "🏸", label: "Equipment" },
-    { id: "Coaches", icon: "👨‍🏫", label: "Coaches" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
 
@@ -21,13 +20,11 @@ export default function SportManagementDashboard() {
     
     const [activeTab, setActiveTab] = useState("Overview");
     const [sport, setSport] = useState(null);
-    const [coaches, setCoaches] = useState([]);
     const [inventory, setInventory] = useState([]);
     const [memberRequests, setMemberRequests] = useState([]);
     const [roster, setRoster] = useState([]);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [loadingCoaches, setLoadingCoaches] = useState(false);
     const [loadingInventory, setLoadingInventory] = useState(false);
     const [loadingMembers, setLoadingMembers] = useState(false);
     const [loadingEvents, setLoadingEvents] = useState(false);
@@ -56,7 +53,6 @@ export default function SportManagementDashboard() {
                         setSport(foundSport);
                         setUpdateData({ name: foundSport.name, description: foundSport.description || "", image: foundSport.image || "" });
                         // Fetch all relevant data for this sport
-                        fetchCoaches(foundSport.name);
                         fetchInventory(foundSport.id);
                         fetchMembers(foundSport.name);
                         fetchEvents(foundSport.id);
@@ -71,20 +67,7 @@ export default function SportManagementDashboard() {
         fetchSportDetails();
     }, [id]);
 
-    const fetchCoaches = async (sportName) => {
-        setLoadingCoaches(true);
-        try {
-            const res = await fetch(`/api/user/sport-coaches?sportName=${encodeURIComponent(sportName)}`);
-            if (res.ok) {
-                const data = await res.json();
-                setCoaches(data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch coaches:", err);
-        } finally {
-            setLoadingCoaches(false);
-        }
-    };
+
 
     const fetchInventory = async (sportId) => {
         setLoadingInventory(true);
@@ -448,9 +431,8 @@ export default function SportManagementDashboard() {
                 <div className="space-y-10">
                     {activeTab === "Overview" && (
                         <>
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
                                 <StatCard label="Active Roster" value={roster.length} color="text-sky-700" bg="bg-[#F0F9FF]" icon="👥" subText="Approved members" />
-                                <StatCard label="Assigned Coaches" value={coaches.length} color="text-emerald-700" bg="bg-[#ECFDF5]" icon="👨‍🏫" subText="Department staff" />
                                 <StatCard label="Upcoming Events" value={events.filter(e => e.status === "UPCOMING").length} color="text-amber-700" bg="bg-[#FFFBEB]" icon="📅" subText="Next 30 days" />
                             </div>
 
@@ -1029,51 +1011,7 @@ export default function SportManagementDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Coaches" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">
-                            <div className="flex justify-between items-center mb-10">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900 underline decoration-sky-200 underline-offset-8 decoration-4 uppercase tracking-tight">Assigned Coaches</h3>
-                                    <p className="text-xs text-gray-400 font-medium mt-4">Staff members managing {sport.name} with you.</p>
-                                </div>
-                            </div>
 
-                            {loadingCoaches ? (
-                                <div className="py-20 text-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mx-auto"></div>
-                                </div>
-                            ) : coaches.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {coaches.map((coach) => (
-                                        <div key={coach._id} className="p-6 bg-[#FAFBFD] rounded-[28px] border border-gray-50 group hover:border-sky-100 transition-all">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center font-black text-sky-600">
-                                                    {coach.name.substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-gray-900 text-sm">{coach.name}</div>
-                                                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Coach</div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3 pt-4 border-t border-gray-100/50">
-                                                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                    <span>🆔 {coach.universityId}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                    <span>📧 {coach.universityEmail || coach.email}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-20">
-                                    <div className="text-5xl mb-6">👨‍🏫</div>
-                                    <p className="text-gray-400 italic font-medium">No coaches have been assigned to this sport yet.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {activeTab === "Settings" && (
                         <div className="bg-white p-12 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -1116,18 +1054,6 @@ export default function SportManagementDashboard() {
                                         />
                                     </div>
                                     <p className="mt-3 text-[9px] text-gray-300 font-medium italic">Recommended ratio 16:9 for optimal display across the platform.</p>
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Sport Official Title</label>
-                                    <input 
-                                        type="text" 
-                                        value={updateData.name} 
-                                        onChange={(e) => setUpdateData({...updateData, name: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-6 py-5 text-sm font-bold text-gray-900 focus:ring-2 ring-indigo-50 outline-none transition-all" 
-                                        placeholder="e.g. SLIIT Cricket Team"
-                                    />
-                                    <p className="mt-2 text-[9px] text-gray-300 font-medium">Changing the title will update the name across all management views.</p>
                                 </div>
 
                                 <div>
