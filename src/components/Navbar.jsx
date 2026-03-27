@@ -23,8 +23,8 @@ export default function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Hide navbar on dashboard routes (moved after all hooks)
-    if (pathname?.startsWith("/dashboard")) return null;
+    // Hide navbar on specific routes
+    if (pathname?.startsWith("/dashboard") || pathname === "/login" || pathname === "/register") return null;
 
     return (
         <nav

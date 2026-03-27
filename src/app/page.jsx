@@ -53,67 +53,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Student Features Banner */}
-      <div className="max-w-7xl mx-auto px-6 mb-24">
-        <div className="relative rounded-[40px] bg-indigo-600 overflow-hidden shadow-2xl shadow-indigo-200">
-          {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-indigo-500 rounded-full opacity-20 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-rose-400 rounded-full opacity-10 blur-3xl"></div>
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 items-center gap-12 p-8 lg:p-16">
-            <div>
-              <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-widest mb-6 border border-white/20">
-                Student Focused
-              </span>
-              <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight">
-                Designed for the <br />
-                <span className="text-indigo-200">Modern Athlete</span>
-              </h2>
-              <p className="mt-6 text-indigo-100 text-lg leading-relaxed max-w-lg">
-                Your journey to excellence starts here. Access professional training programs,
-                manage your athletic schedule, and join a community of passionate performers.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all hover:bg-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-indigo-400/20 flex items-center justify-center text-xl text-white">🎯</div>
-                  <div className="text-white font-bold">Goal Tracking</div>
-                </div>
-                <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all hover:bg-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-rose-400/20 flex items-center justify-center text-xl text-white">📅</div>
-                  <div className="text-white font-bold">Smart Schedules</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <FeatureCard
-                  icon="👟"
-                  title="Team Access"
-                  desc="Join official university sports teams with one click."
-                />
-                <FeatureCard
-                  icon="📢"
-                  title="Notifications"
-                  desc="Real-time alerts for training sessions and events."
-                />
-              </div>
-              <div className="space-y-4 lg:mt-8">
-                <FeatureCard
-                  icon="📦"
-                  title="Equipment"
-                  desc="Check availability and request sports gear instantly."
-                />
-                <FeatureCard
-                  icon="📊"
-                  title="Performance"
-                  desc="Analyze your growth with data-driven reports."
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Sports Section */}
       <div className="max-w-7xl mx-auto px-6 pb-24">
@@ -174,12 +114,3 @@ export default async function Home() {
   );
 }
 
-function FeatureCard({ icon, title, desc }) {
-  return (
-    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-sm transition-all hover:bg-white/10 hover:-translate-y-1">
-      <div className="text-3xl mb-4">{icon}</div>
-      <h4 className="text-white font-bold text-lg">{title}</h4>
-      <p className="text-indigo-100 text-sm mt-2 leading-relaxed">{desc}</p>
-    </div>
-  );
-}

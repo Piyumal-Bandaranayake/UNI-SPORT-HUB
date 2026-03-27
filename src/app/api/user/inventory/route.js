@@ -4,13 +4,6 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 // GET: Fetch inventory for a specific sport
-export const config = {
-    api: {
-        bodyParser: {
-            sizeLimit: '10mb',
-        },
-    },
-};
 
 export async function GET(req) {
     try {
