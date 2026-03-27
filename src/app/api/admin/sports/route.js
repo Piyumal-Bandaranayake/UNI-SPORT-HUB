@@ -78,7 +78,7 @@ export async function PATCH(req) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id, name, description, status } = await req.json();
+        const { id, name, description, status, ...updates } = await req.json();
         if (!id) {
             return NextResponse.json({ error: "Sport ID is required" }, { status: 400 });
         }
@@ -88,6 +88,7 @@ export async function PATCH(req) {
         const updateData = {};
         if (status) updateData.status = status;
         if (description !== undefined) updateData.description = description;
+        if (updates.image) updateData.image = updates.image;
         
         if (name) {
             const trimmedName = name.trim();

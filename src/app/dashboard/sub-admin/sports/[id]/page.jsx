@@ -39,8 +39,8 @@ export default function SportManagementDashboard() {
     const [selectedEvent, setSelectedEvent] = useState(null);
     
     // Updates State
-    const [updateData, setUpdateData] = useState({ name: "", description: "" });
-    const [updateStatus, setUpdateStatus] = useState({ loading: false, error: "", success: "" });
+    const [updateData, setUpdateData] = useState({ name: "", description: "", image: "" });
+    const [updateStatus, setUpdateStatus] = useState({ loading: false, uploadLoading: false, error: "", success: "" });
 
     const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD" });
     const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
@@ -54,7 +54,7 @@ export default function SportManagementDashboard() {
                     const foundSport = data.find(s => s.id === id);
                     if (foundSport) {
                         setSport(foundSport);
-                        setUpdateData({ name: foundSport.name, description: foundSport.description || "" });
+                        setUpdateData({ name: foundSport.name, description: foundSport.description || "", image: foundSport.image || "" });
                         // Fetch all relevant data for this sport
                         fetchCoaches(foundSport.name);
                         fetchInventory(foundSport.id);
@@ -205,21 +205,52 @@ export default function SportManagementDashboard() {
         }
     };
 
+    const uploadToCloudinary = async (base64Image, folder = "unisporthub") => {
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: base64Image, folder }),
+            });
+            const data = await res.json();
+            if (res.ok) return data.url;
+            throw new Error(data.error || "Upload failed");
+        } catch (err) {
+            console.error("Cloudinary upload tool error:", err);
+            throw err;
+        }
+    };
+
     const handleAddEvent = async (e) => {
         e.preventDefault();
+        setUpdateStatus({ ...updateStatus, uploadLoading: true, error: "", success: "" });
+        
         try {
+            let imageUrl = newEvent.image;
+            
+            // If image is a base64 string, upload it to Cloudinary first
+            if (imageUrl && imageUrl.startsWith("data:image")) {
+                imageUrl = await uploadToCloudinary(imageUrl, `events/${sport.name}`);
+            }
+
             const res = await fetch("/api/user/sport-events", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...newEvent, sportId: sport.id }),
+                body: JSON.stringify({ ...newEvent, image: imageUrl, sportId: sport.id }),
             });
+            
             if (res.ok) {
                 fetchEvents(sport.id);
                 setShowAddEventModal(false);
                 setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
+                setUpdateStatus({ ...updateStatus, uploadLoading: false, success: "Event published successfully!" });
+            } else {
+                const errorData = await res.json();
+                setUpdateStatus({ ...updateStatus, uploadLoading: false, error: errorData.error || "Failed to create event." });
             }
         } catch (err) {
             console.error("Failed to add event:", err);
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Image upload failed. Please try again." });
         }
     };
 
@@ -275,21 +306,28 @@ export default function SportManagementDashboard() {
         }
 
         try {
+            let imageUrl = updateData.image;
+
+            // Upload sport identity image if it's new (base64)
+            if (imageUrl && imageUrl.startsWith("data:image")) {
+                imageUrl = await uploadToCloudinary(imageUrl, `sports/${sport.name}`);
+            }
+
             const res = await fetch("/api/admin/sports", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: sport.id, ...updateData }),
+                body: JSON.stringify({ id: sport.id, ...updateData, image: imageUrl }),
             });
             const result = await res.json();
 
             if (res.ok) {
-                setUpdateStatus({ loading: false, error: "", success: "Department details synchronized successfully!" });
+                setUpdateStatus({ loading: false, uploadLoading: false, error: "", success: "Department details synchronized successfully!" });
                 setSport(result.data);
             } else {
-                setUpdateStatus({ loading: false, error: result.error || "Failed to update department.", success: "" });
+                setUpdateStatus({ loading: false, uploadLoading: false, error: result.error || "Failed to update department.", success: "" });
             }
         } catch (err) {
-            setUpdateStatus({ loading: false, error: "Connection error. Please try again.", success: "" });
+            setUpdateStatus({ loading: false, uploadLoading: false, error: "Connection error or image upload failed.", success: "" });
         }
     };
 
@@ -841,9 +879,10 @@ export default function SportManagementDashboard() {
                                              <div className="pt-2">
                                                  <button 
                                                      type="submit"
-                                                     className="w-full bg-sky-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all active:scale-[0.98]"
+                                                     disabled={updateStatus.uploadLoading}
+                                                     className="w-full bg-sky-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all active:scale-[0.98] disabled:opacity-50"
                                                  >
-                                                     Publish Department Event
+                                                     {updateStatus.uploadLoading ? "Uploading Media..." : "Publish Department Event"}
                                                  </button>
                                              </div>
                                          </form>
@@ -1047,6 +1086,39 @@ export default function SportManagementDashboard() {
                                 {updateStatus.success && <p className="p-4 bg-emerald-50 text-emerald-500 rounded-2xl text-[10px] font-black uppercase tracking-widest">{updateStatus.success}</p>}
 
                                 <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Department Identity Image</label>
+                                    <div className="relative h-40 w-full bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden group hover:border-indigo-200 transition-all cursor-pointer shadow-inner">
+                                        {updateData.image ? (
+                                            <div className="relative w-full h-full group">
+                                                <img src={updateData.image} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" alt="Sport Identity" />
+                                                <div className="absolute inset-0 bg-gray-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest bg-white/20 px-4 py-2 rounded-full border border-white/30">Replace Brand Asset</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center group-hover:scale-110 transition-transform duration-300">
+                                                <div className="text-3xl mb-2">🏟️</div>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Upload Sport Banner</span>
+                                            </div>
+                                        )}
+                                        <input 
+                                            type="file" 
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setUpdateData({...updateData, image: reader.result});
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                                        />
+                                    </div>
+                                    <p className="mt-3 text-[9px] text-gray-300 font-medium italic">Recommended ratio 16:9 for optimal display across the platform.</p>
+                                </div>
+
+                                <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Sport Official Title</label>
                                     <input 
                                         type="text" 
@@ -1072,10 +1144,10 @@ export default function SportManagementDashboard() {
                                 <div className="pt-4 flex gap-4">
                                     <button 
                                         type="submit"
-                                        disabled={updateStatus.loading}
+                                        disabled={updateStatus.loading || updateStatus.uploadLoading}
                                         className="flex-1 bg-gray-900 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-600 transition-all shadow-xl shadow-gray-100 active:scale-[0.98] disabled:opacity-50"
                                     >
-                                        {updateStatus.loading ? "Synchronizing..." : "Update Department Info"}
+                                        {updateStatus.uploadLoading ? "Uploading Asset..." : updateStatus.loading ? "Synchronizing..." : "Update Department Info"}
                                     </button>
                                 </div>
                             </form>
