@@ -3,9 +3,9 @@ import dbConnect from "@/lib/mongodb";
 import EquipmentBooking from "@/models/EquipmentBooking";
 import { NextResponse } from "next/server";
 
-export const GET = auth(async function GET(req) {
+export async function GET(req) {
     try {
-        const session = req.auth;
+        const session = await auth();
         if (!session || !session.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

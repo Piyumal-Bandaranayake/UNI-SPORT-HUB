@@ -94,7 +94,7 @@ export async function GET() {
             email: c.email,
             status: c.status,
             assignedSports: c.assignedSports,
-            createdAt: c.createdAt.toISOString(),
+            createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
         }));
 
         return NextResponse.json(formatted);

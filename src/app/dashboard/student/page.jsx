@@ -62,8 +62,8 @@ export default function StudentDashboard() {
                 console.error("Failed to fetch data:", err);
             }
         };
-        fetchData();
-    }, []);
+        if (session) fetchData();
+    }, [session]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
