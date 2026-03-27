@@ -7,6 +7,7 @@ import Link from "next/link";
 const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Dashboard" },
     { id: "Explore", icon: "🔍", label: "Explore Sports" },
+    { id: "Bookings", icon: "🏸", label: "Bookings" },
     { id: "Applications", icon: "📝", label: "My Applications" },
     { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
@@ -16,10 +17,12 @@ export default function StudentDashboard() {
     const [activeTab, setActiveTab] = useState("Overview");
     const [sports, setSports] = useState([]);
     const [joinedSports, setJoinedSports] = useState([]);
+    const [bookings, setBookings] = useState([]);
     const [coaches, setCoaches] = useState([]);
     const [isPending, startTransition] = useTransition();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
     const [formData, setFormData] = useState({ sportId: "", details: "" });
     const [exerciseFormData, setExerciseFormData] = useState({
         coachId: "",
@@ -33,10 +36,11 @@ export default function StudentDashboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [sportsRes, meRes, coachesRes] = await Promise.all([
+                const [sportsRes, meRes, coachesRes, bookingsRes] = await Promise.all([
                     fetch("/api/sports"),
                     fetch("/api/student/me"),
-                    fetch("/api/student/coaches")
+                    fetch("/api/student/coaches"),
+                    fetch("/api/student/bookings")
                 ]);
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
@@ -49,6 +53,10 @@ export default function StudentDashboard() {
                 if (coachesRes.ok) {
                     const coachesData = await coachesRes.json();
                     setCoaches(coachesData);
+                }
+                if (bookingsRes.ok) {
+                    const bookingsData = await bookingsRes.json();
+                    setBookings(bookingsData);
                 }
             } catch (err) {
                 console.error("Failed to fetch data:", err);
@@ -129,7 +137,7 @@ export default function StudentDashboard() {
                     </Link>
                 </div>
 
-                <div className="px-6 space-y-2 flex-1">
+                <div className="px-6 space-y-2 flex-1 overflow-y-auto">
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-3 rounded-2xl transition-all group mb-8"
@@ -153,7 +161,7 @@ export default function StudentDashboard() {
                     ))}
 
                     {joinedSports.length > 0 && (
-                        <div className="pt-6 mt-6 border-t border-gray-100">
+                        <div className="pt-6 mt-6 border-t border-gray-100 pb-10">
                             <h4 className="text-[10px] font-black tracking-widest text-gray-400 uppercase mb-4 px-4">My Teams</h4>
                             <div className="space-y-1">
                                 {joinedSports.map(sport => (
@@ -264,7 +272,16 @@ export default function StudentDashboard() {
                             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 <StatCard label="Active Sports" value={joinedSports.length} color="text-indigo-700" bg="bg-[#EEF2FF]" icon="⚽" subText="Your sports" />
                                 <StatCard label="Applications" value="0" color="text-amber-700" bg="bg-[#FFF4E5]" icon="📝" subText="Pending review" />
-                                <StatCard label="Equipment" value="0" color="text-rose-700" bg="bg-[#FFF1F2]" icon="🏸" subText="Booked items" />
+                                <StatCard 
+                                    label="Equipment" 
+                                    value={bookings.filter(b => b.status === "ACTIVE" || b.status === "PENDING").length} 
+                                    color="text-rose-700" 
+                                    bg="bg-[#FFF1F2]" 
+                                    icon="🏸" 
+                                    subText="Booked items" 
+                                    onClick={() => setActiveTab("Bookings")}
+                                    clickable
+                                />
                             </div>
 
                             {joinedSports.length > 0 && (
@@ -308,8 +325,8 @@ export default function StudentDashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {sports.slice(0, 4).map((sport) => (
                                         <Link
-                                            key={sport.id}
-                                            href={`/sports/${sport.id}`}
+                                            key={sport.id || sport._id}
+                                            href={`/sports/${sport.id || sport._id}`}
                                             className="bg-white p-6 rounded-[28px] flex items-center justify-between shadow-sm border border-gray-50 group hover:shadow-md transition-all"
                                         >
                                             <div className="flex items-center gap-5">
@@ -337,12 +354,80 @@ export default function StudentDashboard() {
                         </>
                     )}
 
+                    {activeTab === "Bookings" && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900">My Equipment Rentals</h3>
+                                    <p className="text-gray-400 text-sm font-medium">Track your active bookings and access QR codes for collection/return.</p>
+                                </div>
+                            </div>
+
+                            {bookings.length === 0 ? (
+                                <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
+                                    <div className="text-6xl mb-6">📦</div>
+                                    <h3 className="text-2xl font-black text-gray-900 mb-2">No Bookings Yet</h3>
+                                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">Explore university sports and book equipment to see them here.</p>
+                                    <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                        Browse Sports
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {bookings.map((booking) => (
+                                        <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                                            
+                                            <div className="flex justify-between items-start mb-6 relative z-10">
+                                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                                    {booking.equipmentName.toLowerCase().includes("ball") ? "⚽" : "🏸"}
+                                                </div>
+                                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                                                    booking.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                    booking.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                    'bg-gray-50 text-gray-400 border-gray-100'
+                                                }`}>
+                                                    {booking.status}
+                                                </span>
+                                            </div>
+
+                                            <div className="relative z-10">
+                                                <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.equipmentName}</h4>
+                                                <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-8">{booking.sportName}</p>
+                                                
+                                                <div className="grid grid-cols-2 gap-4 mb-8">
+                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Quantity</div>
+                                                        <div className="text-lg font-black text-gray-900">{booking.quantity} Units</div>
+                                                    </div>
+                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                        <div className="text-sm font-black text-gray-900">{new Date(booking.bookingDate).toLocaleDateString()}</div>
+                                                    </div>
+                                                </div>
+
+                                                {booking.qrCode && (
+                                                    <button 
+                                                        onClick={() => setSelectedBooking(booking)}
+                                                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95"
+                                                    >
+                                                        Show QR Code
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === "Explore" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {sports.map((sport) => (
                                 <Link
-                                    key={sport.id}
-                                    href={`/sports/${sport.id}`}
+                                    key={sport.id || sport._id}
+                                    href={`/sports/${sport.id || sport._id}`}
                                     className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all group"
                                 >
                                     <div className="h-48 overflow-hidden relative">
@@ -439,7 +524,7 @@ export default function StudentDashboard() {
                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 text-center">
                             <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">🥗</div>
                             <h3 className="text-xl font-black text-gray-900 mb-2">Schedule Meal Plan</h3>
-                            <p className="text-gray-400 text-sm mb-8 max-w-sm mx-auto">Your dietary guidelines and meal plans tailored to your sport will be accessible here.</p>
+                            <p className="text-gray-400 text-sm mb-8 max-sm mx-auto">Your dietary guidelines and meal plans tailored to your sport will be accessible here.</p>
                         </div>
                     )}
 
@@ -512,22 +597,64 @@ export default function StudentDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Modal for Booking QR */}
+            {selectedBooking && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                        <button 
+                            onClick={() => setSelectedBooking(null)}
+                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                        >
+                            ✕
+                        </button>
+                        
+                        <div className="text-center">
+                            <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Identity Hub</div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tight">Booking Verifier</h3>
+                            
+                            <div className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 inline-block mb-8">
+                                <img 
+                                    src={selectedBooking.qrCode} 
+                                    alt="Booking QR" 
+                                    className="w-48 h-48 mx-auto"
+                                />
+                            </div>
+                            
+                            <div className="space-y-4 text-left">
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Equipment Name</div>
+                                    <div className="text-gray-900 font-bold">{selectedBooking.equipmentName}</div>
+                                </div>
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Booking Reference</div>
+                                    <div className="text-[10px] font-mono font-medium text-gray-500 truncate">{selectedBooking._id}</div>
+                                </div>
+                            </div>
+                            
+                            <p className="mt-8 text-xs text-gray-400 font-medium">Please present this code to the sports department staff to verify your booking.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function StatCard({ label, value, color, bg, icon, subText }) {
+function StatCard({ label, value, color, bg, icon, subText, onClick, clickable }) {
     return (
-        <div className={`rounded-[28px] ${bg} p-7 flex flex-col gap-4 shadow-sm border border-gray-50 transition-transform hover:-translate-y-1`}>
+        <div 
+            onClick={onClick}
+            className={`rounded-[28px] ${bg} p-7 flex flex-col gap-4 shadow-sm border border-gray-50 transition-all duration-300 ${clickable ? 'cursor-pointer hover:-translate-y-2 hover:shadow-xl' : 'hover:-translate-y-1'}`}
+        >
             <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl">{icon}</div>
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl transition-transform group-hover:scale-110">{icon}</div>
                 <div className={`text-3xl font-black ${color}`}>{value}</div>
             </div>
             <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</p>
-                <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase">{subText}</p>
+                <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase leading-none">{subText}</p>
             </div>
         </div>
     );
 }
-
