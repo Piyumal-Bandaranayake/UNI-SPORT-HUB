@@ -39,6 +39,40 @@ export default function StudentDashboard() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isScheduling, setIsScheduling] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    const validateExerciseField = (name, value) => {
+        let error = "";
+        if (name === "contactNumber") {
+            if (!value) error = "Contact number is required.";
+            else if (!/^\+?[0-9\s-]{8,15}$/.test(value)) error = "Invalid phone number format (8-15 digits).";
+        }
+        if (name === "freeTime") {
+            if (!value) error = "Free time is required.";
+            else if (value.length < 5) error = "Please provide more details (e.g. Day and Time).";
+        }
+        if (name === "coachId" && !value) error = "Please select a coach.";
+        if (name === "sessionType" && !value) error = "Please select a session type.";
+        
+        setErrors(prev => ({ ...prev, [name]: error }));
+        return error === "";
+    };
+
+    const validateJoinField = (name, value) => {
+        let error = "";
+        if (name === "details") {
+            if (!value) error = "Details are required.";
+            else if (value.length < 10) error = "Please provide at least 10 characters about your interest.";
+        }
+        if (name === "sportId" && !value) error = "Please select a sport.";
+        
+        setErrors(prev => ({ ...prev, [name]: error }));
+        return error === "";
+    };
+
+    useEffect(() => {
+        setErrors({}); // Clear errors when switching tabs
+    }, [activeTab]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -90,6 +124,13 @@ export default function StudentDashboard() {
 
     const handleJoinSport = async (e) => {
         e.preventDefault();
+        
+        let isValid = true;
+        isValid = validateJoinField("sportId", formData.sportId) && isValid;
+        isValid = validateJoinField("details", formData.details) && isValid;
+        
+        if (!isValid) return;
+
         setIsSubmitting(true);
         try {
             const res = await fetch("/api/student/requests", {
@@ -103,7 +144,7 @@ export default function StudentDashboard() {
                 setFormData({ sportId: "", details: "" });
             } else {
                 const data = await res.json();
-                alert(data.error || "Failed to submit request");
+                setErrors({ ...errors, submit: data.error || "Failed to submit request" });
             }
         } catch (err) {
             console.error(err);
@@ -115,6 +156,15 @@ export default function StudentDashboard() {
 
     const handleScheduleExercise = async (e) => {
         e.preventDefault();
+
+        let isValid = true;
+        isValid = validateExerciseField("contactNumber", exerciseFormData.contactNumber) && isValid;
+        isValid = validateExerciseField("coachId", exerciseFormData.coachId) && isValid;
+        isValid = validateExerciseField("freeTime", exerciseFormData.freeTime) && isValid;
+        isValid = validateExerciseField("sessionType", exerciseFormData.sessionType) && isValid;
+
+        if (!isValid) return;
+
         setIsScheduling(true);
         try {
             const res = await fetch("/api/student/schedule-exercise", {
@@ -127,13 +177,39 @@ export default function StudentDashboard() {
                 setExerciseFormData({ coachId: "", contactNumber: "", freeTime: "", sessionType: "" });
             } else {
                 const data = await res.json();
-                alert(data.error || "Failed to schedule exercise");
+                setErrors({ ...errors, scheduleSubmit: data.error || "Failed to schedule exercise" });
             }
         } catch (err) {
             console.error(err);
             alert("An error occurred");
         } finally {
             setIsScheduling(false);
+        }
+    };
+
+    const handleCancelBooking = async (bookingId) => {
+        if (!confirm("Are you sure you want to cancel this booking?")) return;
+        
+        try {
+            const res = await fetch(`/api/student/bookings/${bookingId}`, {
+                method: "DELETE"
+            });
+            
+            if (res.ok) {
+                alert("Booking canceled successfully!");
+                // Refresh bookings list
+                const bookingsRes = await fetch("/api/student/bookings");
+                if (bookingsRes.ok) {
+                    const bookingsData = await bookingsRes.json();
+                    setBookings(bookingsData);
+                }
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to cancel booking");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while canceling the booking.");
         }
     };
 
@@ -438,9 +514,18 @@ export default function StudentDashboard() {
                                                 {booking.qrCode && (
                                                     <button 
                                                         onClick={() => setSelectedBooking(booking)}
-                                                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95"
+                                                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
                                                     >
                                                         Show QR Code
+                                                    </button>
+                                                )}
+
+                                                {(booking.status === "PENDING" || booking.status === "ACTIVE") && (
+                                                    <button 
+                                                        onClick={() => handleCancelBooking(booking._id)}
+                                                        className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                                    >
+                                                        Cancel Booking
                                                     </button>
                                                 )}
                                             </div>
@@ -571,44 +656,80 @@ export default function StudentDashboard() {
                             </div>
 
                             <form onSubmit={handleScheduleExercise} className="space-y-6">
+                                {errors.scheduleSubmit && <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in fade-in">{errors.scheduleSubmit}</div>}
+                                
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Student Name</label>
-                                        <input type="text" value={session?.user?.name || ""} disabled className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-400 outline-none cursor-not-allowed" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Contact Number</label>
-                                        <input required type="tel" placeholder="e.g. +1 234 567 890" value={exerciseFormData.contactNumber} onChange={(e) => setExerciseFormData({...exerciseFormData, contactNumber: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50" />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Select Coach</label>
-                                    <select required value={exerciseFormData.coachId} onChange={(e) => setExerciseFormData({...exerciseFormData, coachId: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50">
-                                        <option value="" disabled>Choose a coach...</option>
-                                        {coaches.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Free Time</label>
-                                        <input required type="text" placeholder="e.g. Wednesday 4:00 PM" value={exerciseFormData.freeTime} onChange={(e) => setExerciseFormData({...exerciseFormData, freeTime: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Session Type</label>
-                                        <select required value={exerciseFormData.sessionType} onChange={(e) => setExerciseFormData({...exerciseFormData, sessionType: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50">
-                                            <option value="" disabled>Select type...</option>
-                                            <option value="ONLINE">Online Session</option>
-                                            <option value="PHYSICAL">Physical Training</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <button disabled={isScheduling} type="submit" className="w-full bg-indigo-600 text-white py-4 mt-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100">
-                                    {isScheduling ? "Submitting..." : "Send Request to Coach"}
-                                </button>
-                            </form>
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Student Name</label>
+                                         <input type="text" value={session?.user?.name || ""} disabled className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-400 outline-none cursor-not-allowed" />
+                                     </div>
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Contact Number</label>
+                                         <input 
+                                             type="tel" placeholder="e.g. +1 234 567 890" 
+                                             value={exerciseFormData.contactNumber} 
+                                             onChange={(e) => {
+                                                 setExerciseFormData({...exerciseFormData, contactNumber: e.target.value});
+                                                 validateExerciseField("contactNumber", e.target.value);
+                                             }} 
+                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.contactNumber ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                         />
+                                         {errors.contactNumber && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.contactNumber}</p>}
+                                     </div>
+                                 </div>
+ 
+                                 <div>
+                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Select Coach</label>
+                                     <select 
+                                         value={exerciseFormData.coachId} 
+                                         onChange={(e) => {
+                                             setExerciseFormData({...exerciseFormData, coachId: e.target.value});
+                                             validateExerciseField("coachId", e.target.value);
+                                         }} 
+                                         className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.coachId ? "ring-2 ring-rose-500" : "ring-indigo-50"}`}
+                                     >
+                                         <option value="" disabled>Choose a coach...</option>
+                                         {coaches.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                     </select>
+                                     {errors.coachId && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.coachId}</p>}
+                                 </div>
+ 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Free Time</label>
+                                         <input 
+                                             type="text" placeholder="e.g. Wednesday 4:00 PM" 
+                                             value={exerciseFormData.freeTime} 
+                                             onChange={(e) => {
+                                                 setExerciseFormData({...exerciseFormData, freeTime: e.target.value});
+                                                 validateExerciseField("freeTime", e.target.value);
+                                             }} 
+                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.freeTime ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                         />
+                                         {errors.freeTime && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.freeTime}</p>}
+                                     </div>
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Session Type</label>
+                                         <select 
+                                             value={exerciseFormData.sessionType} 
+                                             onChange={(e) => {
+                                                 setExerciseFormData({...exerciseFormData, sessionType: e.target.value});
+                                                 validateExerciseField("sessionType", e.target.value);
+                                             }} 
+                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.sessionType ? "ring-2 ring-rose-500" : "ring-indigo-50"}`}
+                                         >
+                                             <option value="" disabled>Select type...</option>
+                                             <option value="ONLINE">Online Session</option>
+                                             <option value="PHYSICAL">Physical Training</option>
+                                         </select>
+                                         {errors.sessionType && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.sessionType}</p>}
+                                     </div>
+                                 </div>
+ 
+                                 <button disabled={isScheduling || Object.values(errors).some(e => e)} type="submit" className="w-full bg-indigo-600 text-white py-4 mt-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100">
+                                     {isScheduling ? "Submitting..." : "Send Request to Coach"}
+                                 </button>
+                             </form>
                         </div>
                     )}
 
@@ -710,17 +831,22 @@ export default function StudentDashboard() {
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
                         </div>
                         <form onSubmit={handleJoinSport} className="space-y-5">
+                            {errors.submit && <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in fade-in">{errors.submit}</div>}
+                            
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Select Sport</label>
                                 <select 
-                                    required 
                                     value={formData.sportId} 
-                                    onChange={(e) => setFormData({...formData, sportId: e.target.value})}
-                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                    onChange={(e) => {
+                                        setFormData({...formData, sportId: e.target.value});
+                                        validateJoinField("sportId", e.target.value);
+                                    }}
+                                    className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.sportId ? "ring-2 ring-rose-500" : "ring-indigo-50"}`}
                                 >
                                     <option value="" disabled>Select a sport...</option>
                                     {sports.map(s => <option key={s.id || s._id} value={s.id || s._id}>{s.name}</option>)}
                                 </select>
+                                {errors.sportId && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.sportId}</p>}
                             </div>
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Upload Qualification</label>
@@ -734,14 +860,17 @@ export default function StudentDashboard() {
                             <div>
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Additional Details</label>
                                 <textarea 
-                                    required 
                                     placeholder="Why do you want to join?"
                                     value={formData.details} 
-                                    onChange={(e) => setFormData({...formData, details: e.target.value})}
-                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-medium text-gray-900 outline-none focus:ring-2 ring-indigo-50 min-h-[100px] resize-none"
+                                    onChange={(e) => {
+                                        setFormData({...formData, details: e.target.value});
+                                        validateJoinField("details", e.target.value);
+                                    }}
+                                    className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-medium text-gray-900 outline-none focus:ring-2 transition-all min-h-[100px] resize-none ${errors.details ? "ring-2 ring-rose-500" : "ring-indigo-50"}`}
                                 ></textarea>
+                                {errors.details && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.details}</p>}
                             </div>
-                            <button disabled={isSubmitting} type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all disabled:opacity-50">
+                            <button disabled={isSubmitting || Object.values(errors).some(e => e)} type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-sm hover:bg-indigo-700 transition-all disabled:opacity-50">
                                 {isSubmitting ? "Submitting..." : "Submit Request"}
                             </button>
                         </form>

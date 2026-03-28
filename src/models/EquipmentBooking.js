@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const EquipmentBookingSchema = new mongoose.Schema({
     userId: { type: String, required: true }, // University ID
     userEmail: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
     equipmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipment', required: true },
     equipmentName: { type: String, required: true },
     sportId: { type: mongoose.Schema.Types.ObjectId, ref: 'Sport', required: true },

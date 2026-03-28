@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 function LoginContent() {
     const [formData, setFormData] = useState({ universityId: "", password: "" });
@@ -21,22 +22,22 @@ function LoginContent() {
         setLoading(true);
 
         try {
-            const response = await fetch("/api/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formData),
+            const result = await signIn("credentials", {
+                universityId: formData.universityId,
+                password: formData.password,
+                redirect: false,
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                setError(result.error || "Authentication failed");
+            if (result?.error) {
+                // NextAuth errors can be wrapped in generic messages
+                if (result.error.includes("CredentialsSignin")) {
+                    setError("Invalid University ID or Password");
+                } else {
+                    setError(result.error || "Authentication failed");
+                }
                 setLoading(false);
             } else {
                 // Success - redirect to dashboard
-                // Since session is set, we can just push to /dashboard
                 window.location.href = "/dashboard";
             }
         } catch (error) {

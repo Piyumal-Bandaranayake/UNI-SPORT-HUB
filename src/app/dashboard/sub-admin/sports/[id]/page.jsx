@@ -131,6 +131,14 @@ export default function SportManagementDashboard() {
         try {
             const finalName = newItem.name === "Custom Gear" ? customItemName : newItem.name;
             if (!finalName) throw new Error("Please provide an item name.");
+            
+            if (newItem.quantity < 0) {
+                throw new Error("Initial stock cannot be negative.");
+            }
+
+            if (inventory.some(item => item.name.toLowerCase() === finalName.trim().toLowerCase())) {
+                throw new Error(`${finalName} is already in the inventory.`);
+            }
 
             let imageUrl = newItem.image;
             if (imageUrl && imageUrl.startsWith("data:image")) {
@@ -1049,6 +1057,11 @@ export default function SportManagementDashboard() {
                                             <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-900">✕</button>
                                         </div>
                                         <form onSubmit={handleAddItem} className="space-y-6">
+                                            {updateStatus.error && (
+                                                <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                                                    {updateStatus.error}
+                                                </div>
+                                            )}
                                             <div>
                                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Item Type / Name</label>
                                                 <select 
@@ -1058,7 +1071,9 @@ export default function SportManagementDashboard() {
                                                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
                                                 >
                                                     <option value="">Select Equipment</option>
-                                                    {sport && (SPORT_EQUIPMENT_MAP[sport.name.toUpperCase()] || []).map(item => (
+                                                    {sport && (SPORT_EQUIPMENT_MAP[sport.name.toUpperCase()] || [])
+                                                        .filter(item => !inventory.some(inv => inv.name === item))
+                                                        .map(item => (
                                                         <option key={item} value={item}>{item}</option>
                                                     ))}
                                                     <option value="Custom Gear">Other / Custom Gear</option>
