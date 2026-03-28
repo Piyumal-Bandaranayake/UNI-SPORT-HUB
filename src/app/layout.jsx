@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SessionWrapper from "@/components/SessionWrapper";
+import AIAssistant from "@/components/AIAssistant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
           <main className="overflow-x-hidden">
             {children}
           </main>
+          <AIAssistant />
           <Footer />
         </SessionWrapper>
       </body>

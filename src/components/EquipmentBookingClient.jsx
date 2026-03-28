@@ -6,6 +6,7 @@ import Image from "next/image";
 export default function EquipmentBookingClient({ equipments, user }) {
     const [selectedItem, setSelectedItem] = useState(null);
     const [quantity, setQuantity] = useState(1);
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [isBooking, setIsBooking] = useState(false);
     const [bookingResult, setBookingResult] = useState(null);
     const [error, setError] = useState("");
@@ -14,6 +15,7 @@ export default function EquipmentBookingClient({ equipments, user }) {
         if (item.available <= 0) return;
         setSelectedItem(item);
         setQuantity(1);
+        setPhoneNumber("");
         setBookingResult(null);
         setError("");
     };
@@ -29,13 +31,28 @@ export default function EquipmentBookingClient({ equipments, user }) {
         setIsBooking(true);
         setError("");
 
+        if (!user) {
+            setError("Please login first to book equipment.");
+            setIsBooking(false);
+            return;
+        }
+
+        // Frontend validation for phone number
+        const phoneRegex = /^\+?[\d\s-]{10,}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            setError("Please enter a valid phone number (at least 10 digits).");
+            setIsBooking(false);
+            return;
+        }
+
         try {
             const res = await fetch("/api/bookings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     equipmentId: selectedItem._id,
-                    quantity: quantity
+                    quantity: quantity,
+                    phoneNumber: phoneNumber
                 })
             });
 
@@ -118,12 +135,24 @@ export default function EquipmentBookingClient({ equipments, user }) {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Student ID</div>
-                                                <div className="text-gray-900 font-bold truncate">{user?.universityId}</div>
+                                                <div className="text-gray-900 font-bold truncate">{user?.universityId || <span className="text-rose-400 text-[10px] italic">Login Required</span>}</div>
                                             </div>
                                             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                                 <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email</div>
-                                                <div className="text-gray-900 font-bold truncate">{user?.universityEmail}</div>
+                                                <div className="text-gray-900 font-bold truncate">{user?.universityEmail || <span className="text-rose-400 text-[10px] italic">Login Required</span>}</div>
                                             </div>
+                                        </div>
+
+                                        <div className="p-4 bg-white border-2 border-indigo-600/20 rounded-2xl group focus-within:border-indigo-600 transition-all">
+                                            <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mb-1 block">Phone Number</div>
+                                            <input 
+                                                required
+                                                type="tel" 
+                                                placeholder="e.g. +94 77 123 4567"
+                                                value={phoneNumber}
+                                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                                className="bg-transparent border-none font-bold text-lg text-gray-900 w-full focus:outline-none placeholder:text-gray-300"
+                                            />
                                         </div>
 
                                         <div className="p-4 bg-white border-2 border-indigo-600/20 rounded-2xl group focus-within:border-indigo-600 transition-all">

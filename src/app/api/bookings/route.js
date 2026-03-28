@@ -11,14 +11,20 @@ export const POST = auth(async function POST(req) {
         
         if (!session || !session.user) {
             console.warn("[BookingAPI] Unauthorized access attempt - no session found.");
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Please login first" }, { status: 401 });
         }
 
-        const { equipmentId, quantity } = await req.json();
+        const { equipmentId, quantity, phoneNumber } = await req.json();
         const requestedQuantity = parseInt(quantity);
         
         if (isNaN(requestedQuantity) || requestedQuantity <= 0) {
             return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+        }
+
+        // Backend validation for phone number
+        const phoneRegex = /^\+?[\d\s-]{10,}$/;
+        if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
+            return NextResponse.json({ error: "A valid phone number is required" }, { status: 400 });
         }
 
         await dbConnect();
@@ -50,6 +56,7 @@ export const POST = auth(async function POST(req) {
         const booking = await EquipmentBooking.create({
             userId: session.user.universityId || "UNKNOWN",
             userEmail: session.user.universityEmail || session.user.universityId || "no-email@uni.edu",
+            phoneNumber: phoneNumber,
             equipmentId: equipment._id,
             equipmentName: equipment.name,
             sportId: sport._id,

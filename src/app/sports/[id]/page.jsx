@@ -82,14 +82,8 @@ export default async function SportProfile({ params }) {
                                 Booking & Reservations
                             </h2>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <BookingCard
-                                    icon="🏟️"
-                                    title="Court Reservation"
-                                    desc="Book a court for practice sessions or friendly matches."
-                                    price="Free for Students"
-                                    tag="Facility"
-                                />
+                            <div className="grid grid-cols-1 gap-6">
+
                                 <BookingCard
                                     icon="🏸"
                                     title="Equipment Rental"
