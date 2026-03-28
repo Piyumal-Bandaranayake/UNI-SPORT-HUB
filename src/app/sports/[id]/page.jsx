@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Sport from "@/models/Sport";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import JoinSportSection from "@/components/JoinSportSection";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,6 @@ export default async function SportProfile({ params }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-12">
-
                         {/* Booking Options Section */}
                         <section>
                             <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
@@ -100,35 +100,11 @@ export default async function SportProfile({ params }) {
                                 />
                             </div>
                         </section>
-
-
                     </div>
 
                     {/* Sidebar Actions */}
                     <div className="space-y-6">
-                        <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-xl shadow-indigo-100/20">
-                            <h3 className="text-xl font-bold text-gray-900 mb-4">Interested in joining?</h3>
-                            <p className="text-gray-500 text-sm mb-8">
-                                Start your journey as a professional athlete in our university team.
-                            </p>
-
-                            {!session ? (
-                                <Link
-                                    href="/login"
-                                    className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-center block hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                                >
-                                    Login to Apply
-                                </Link>
-                            ) : (
-                                <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-center block hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                                    Send Join Request
-                                </button>
-                            )}
-
-                            <p className="mt-6 text-center text-xs text-gray-400 font-medium">
-                                Response typical within 24-48 hours
-                            </p>
-                        </div>
+                        <JoinSportSection sportId={id} session={session} />
 
                         <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
                             <h4 className="font-bold text-gray-900 mb-4">Quick Contact</h4>

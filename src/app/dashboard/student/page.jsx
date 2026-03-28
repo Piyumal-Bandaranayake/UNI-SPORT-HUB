@@ -9,8 +9,14 @@ const MENU_ITEMS = [
     { id: "Explore", icon: "🔍", label: "Explore Sports" },
     { id: "Bookings", icon: "🏸", label: "Bookings" },
     { id: "Applications", icon: "📝", label: "My Applications" },
-    { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
+
+const APPROVED_MENU_ITEMS = [
+    { id: "Exercise", icon: "💪", label: "Exercise Plan" },
+    { id: "Diet", icon: "🥗", label: "Meal Plan" },
+];
+
+const SETTINGS_MENU_ITEM = { id: "Settings", icon: "⚙️", label: "Settings" };
 
 export default function StudentDashboard() {
     const { data: session } = useSession();
@@ -19,6 +25,7 @@ export default function StudentDashboard() {
     const [joinedSports, setJoinedSports] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [coaches, setCoaches] = useState([]);
+    const [trainingSchedules, setTrainingSchedules] = useState([]);
     const [isPending, startTransition] = useTransition();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,11 +43,12 @@ export default function StudentDashboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [sportsRes, meRes, coachesRes, bookingsRes] = await Promise.all([
+                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes] = await Promise.all([
                     fetch("/api/sports"),
                     fetch("/api/student/me"),
                     fetch("/api/student/coaches"),
-                    fetch("/api/student/bookings")
+                    fetch("/api/student/bookings"),
+                    fetch("/api/student/training-schedules")
                 ]);
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
@@ -57,6 +65,10 @@ export default function StudentDashboard() {
                 if (bookingsRes.ok) {
                     const bookingsData = await bookingsRes.json();
                     setBookings(bookingsData);
+                }
+                if (schedulesRes.ok) {
+                    const schedulesData = await schedulesRes.json();
+                    setTrainingSchedules(schedulesData || []);
                 }
             } catch (err) {
                 console.error("Failed to fetch data:", err);
@@ -161,6 +173,40 @@ export default function StudentDashboard() {
                     ))}
 
                     {joinedSports.length > 0 && (
+                        <>
+                            <div className="mt-8 mb-4">
+                                <h4 className="text-[10px] font-black tracking-widest text-gray-400 uppercase px-4">Athlete Hub</h4>
+                            </div>
+                            {APPROVED_MENU_ITEMS.map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id
+                                        ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
+                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                        }`}
+                                >
+                                    <span className="text-lg">{item.icon}</span>
+                                    {item.label}
+                                </button>
+                            ))}
+                        </>
+                    )}
+
+                    <div className="mt-2">
+                        <button
+                            onClick={() => setActiveTab(SETTINGS_MENU_ITEM.id)}
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === SETTINGS_MENU_ITEM.id
+                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
+                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                }`}
+                        >
+                            <span className="text-lg">{SETTINGS_MENU_ITEM.icon}</span>
+                            {SETTINGS_MENU_ITEM.label}
+                        </button>
+                    </div>
+
+                    {joinedSports.length > 0 && (
                         <div className="pt-6 mt-6 border-t border-gray-100 pb-10">
                             <h4 className="text-[10px] font-black tracking-widest text-gray-400 uppercase mb-4 px-4">My Teams</h4>
                             <div className="space-y-1">
@@ -172,30 +218,6 @@ export default function StudentDashboard() {
                                         <span className="text-sm font-bold text-gray-700">{sport.name}</span>
                                     </div>
                                 ))}
-                            </div>
-                            
-                            <div className="mt-8 pt-6 border-t border-gray-100 space-y-2">
-                                <h4 className="text-[10px] font-black tracking-widest text-gray-400 uppercase mb-4 px-4">Training & Diet</h4>
-                                <button
-                                    onClick={() => setActiveTab("Schedule Exercise")}
-                                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === "Schedule Exercise"
-                                        ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                                        }`}
-                                >
-                                    <span className="text-lg">🏋️</span>
-                                    Schedule Exercise
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab("Schedule Meal Plan")}
-                                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === "Schedule Meal Plan"
-                                        ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                                        }`}
-                                >
-                                    <span className="text-lg">🥗</span>
-                                    Schedule Meal Plan
-                                </button>
                             </div>
                         </div>
                     )}
@@ -475,14 +497,77 @@ export default function StudentDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Schedule Exercise" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl mx-auto">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl">🏋️</div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-gray-900">Schedule Exercise</h3>
-                                    <p className="text-gray-400 text-sm font-medium">Book a guided session with your team coach.</p>
+                    {activeTab === "Exercise" && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
+                            <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center mb-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-xl">🏆</div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">UPCOMING SESSIONS</h3>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Live Timeline • Updated Weekly</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setActiveTab("Schedule Exercise")}
+                                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100/50"
+                                    >
+                                        Schedule Consultation
+                                    </button>
                                 </div>
+                                <div className="space-y-5">
+                                    {trainingSchedules.length === 0 ? (
+                                        <div className="py-24 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100 flex flex-col items-center gap-6">
+                                            <div className="text-6xl grayscale opacity-30">🏟️</div>
+                                            <div className="max-w-xs">
+                                                <h4 className="text-lg font-black text-gray-900 tracking-tight mb-2">No Sessions Assigned</h4>
+                                                <p className="text-xs text-gray-400 font-medium leading-relaxed">Your professional team training times and workout schedules from coaches will appear here.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        trainingSchedules.map((item, idx) => (
+                                            <div key={idx} className={`flex items-center justify-between p-7 rounded-[32px] border transition-all bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/20 group`}>
+                                                <div className="flex items-center gap-6">
+                                                    <div className="w-16 h-16 rounded-[20px] bg-white shadow-sm border border-gray-50 flex flex-col items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:scale-105">
+                                                        <span className="text-[10px] uppercase opacity-60 leading-none mb-1.5">{item.date.split('-')[2] || "DAY"}</span>
+                                                        <span className="text-lg leading-none">{item.date.split('-')[1] || "—"}</span>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-base font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight mb-1">{item.activity}</div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 uppercase tracking-widest">{item.sportName}</span>
+                                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold">
+                                                                <span>🕒</span>
+                                                                {item.time}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right hidden md:block">
+                                                    <div className="text-xs font-black text-gray-900 underline decoration-indigo-200 underline-offset-4 mb-1">{item.location}</div>
+                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-end gap-1">
+                                                       <span>📍</span> Venue
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
+                    {activeTab === "Schedule Exercise" && (
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl">📅</div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-gray-900">Schedule Session</h3>
+                                        <p className="text-gray-400 text-sm font-medium">Book a guided session with your team coach.</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setActiveTab("Exercise")} className="text-indigo-600 font-bold text-xs hover:underline">← Back to Plan</button>
                             </div>
 
                             <form onSubmit={handleScheduleExercise} className="space-y-6">
@@ -527,11 +612,70 @@ export default function StudentDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Schedule Meal Plan" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 text-center">
-                            <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">🥗</div>
-                            <h3 className="text-xl font-black text-gray-900 mb-2">Schedule Meal Plan</h3>
-                            <p className="text-gray-400 text-sm mb-8 max-sm mx-auto">Your dietary guidelines and meal plans tailored to your sport will be accessible here.</p>
+                    {activeTab === "Diet" && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <section className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center mb-8">
+                                        <h3 className="text-xl font-black text-gray-900 tracking-tight">NUTRITION PLAN</h3>
+                                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Bulking Season</span>
+                                    </div>
+                                    
+                                    <div className="space-y-6">
+                                        {[
+                                            { meal: "Breakfast", items: "Oatmeal with berries, 3 Egg Whites", time: "08:00 AM", cal: "450" },
+                                            { meal: "Lunch", items: "Grilled Chicken Breast, Quinoa, Salad", time: "01:00 PM", cal: "650" },
+                                            { meal: "Pre-Workout", items: "Banana and Greek Yogurt", time: "04:30 PM", cal: "220" },
+                                            { meal: "Dinner", items: "Steamed Fish, Sweet Potato, Broccoli", time: "08:00 PM", cal: "510" },
+                                        ].map((item, idx) => (
+                                            <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
+                                                <div>
+                                                    <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">{item.meal} • {item.time}</div>
+                                                    <div className="text-sm font-bold text-gray-900">{item.items}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-lg font-black text-gray-900">{item.cal}</div>
+                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">KCAL</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <div className="space-y-8">
+                                    <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase mb-6 tracking-widest">Hydration Tracker</h4>
+                                            <div className="flex items-end justify-center gap-2 mb-6">
+                                                <div className="text-5xl font-black text-sky-600">2.4</div>
+                                                <div className="text-xs font-black text-gray-300 mb-2 uppercase">Liters / 3.5L</div>
+                                            </div>
+                                            <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden mb-8">
+                                                <div className="bg-sky-500 h-full w-[68%]"></div>
+                                            </div>
+                                            <button className="w-full py-4 bg-sky-50 text-sky-600 rounded-2xl text-[10px] font-black uppercase hover:bg-sky-100 transition-all border border-sky-100">Add 250ml</button>
+                                        </div>
+                                    </section>
+
+                                    <section className="bg-emerald-600 text-white p-8 rounded-[32px] shadow-xl">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-4">Daily Balance</h4>
+                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                            <div>
+                                                <div className="text-lg font-black">180g</div>
+                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Protein</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-lg font-black">240g</div>
+                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Carbs</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-lg font-black">65g</div>
+                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Fats</div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
                         </div>
                     )}
 

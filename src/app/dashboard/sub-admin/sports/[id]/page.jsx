@@ -58,7 +58,7 @@ export default function SportManagementDashboard() {
                         setUpdateData({ name: foundSport.name, description: foundSport.description || "", image: foundSport.image || "" });
                         // Fetch all relevant data for this sport
                         fetchInventory(foundSport.id);
-                        fetchMembers(foundSport.name);
+                        fetchMembers(foundSport.name, foundSport.id);
                         fetchEvents(foundSport.id);
                     }
                 }
@@ -88,12 +88,12 @@ export default function SportManagementDashboard() {
         }
     };
 
-    const fetchMembers = async (sportName) => {
+    const fetchMembers = async (sportName, sportId) => {
         setLoadingMembers(true);
         try {
             const [pendingRes, rosterRes] = await Promise.all([
-                fetch(`/api/user/sport-members?sportName=${encodeURIComponent(sportName)}&type=pending`),
-                fetch(`/api/user/sport-members?sportName=${encodeURIComponent(sportName)}&type=roster`)
+                fetch(`/api/user/sport-members?sportName=${encodeURIComponent(sportName)}&sportId=${sportId}&type=pending`),
+                fetch(`/api/user/sport-members?sportName=${encodeURIComponent(sportName)}&sportId=${sportId}&type=roster`)
             ]);
             
             if (pendingRes.ok) setMemberRequests(await pendingRes.json());
@@ -232,10 +232,10 @@ export default function SportManagementDashboard() {
             const res = await fetch("/api/user/sport-members", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId, sportName: sport.name, action }),
+                body: JSON.stringify({ studentId, sportName: sport.name, sportId: sport.id, action }),
             });
             if (res.ok) {
-                fetchMembers(sport.name);
+                fetchMembers(sport.name, sport.id);
             }
         } catch (err) {
             console.error("Failed to handle member action:", err);
@@ -584,6 +584,11 @@ export default function SportManagementDashboard() {
                                                 <div>
                                                     <div className="font-bold text-gray-900">{req.name}</div>
                                                     <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{req.universityId} • {req.email}</div>
+                                                    {req.details && (
+                                                        <div className="mt-2 p-3 bg-white rounded-xl border border-gray-100/50 text-[10px] font-medium text-gray-500 italic">
+                                                            " {req.details} "
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-all">
