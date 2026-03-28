@@ -140,11 +140,11 @@ export default function AdminDashboard() {
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+            <aside className="w-64 bg-indigo-950 border-r border-indigo-900 flex flex-col fixed inset-y-0 left-0 z-40">
                 <div className="p-8">
                     <Link href="/" className="flex items-center gap-2">
-                        <span className="text-2xl font-black tracking-tighter text-gray-900">
-                            Uni<span className="text-indigo-600">Sport</span>Hub
+                        <span className="text-2xl font-black tracking-tighter text-white">
+                            Uni<span className="text-indigo-400">Sport</span>Hub
                         </span>
                     </Link>
                 </div>
@@ -152,10 +152,10 @@ export default function AdminDashboard() {
                 <div className="px-6 space-y-2 flex-1">
                     <button
                         onClick={handleAddClick}
-                        className="w-full flex items-center justify-between bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-3 rounded-2xl transition-all group mb-8"
+                        className="w-full flex items-center justify-between bg-white/10 hover:bg-white/20 text-indigo-100 px-4 py-3 rounded-2xl transition-all group mb-8"
                     >
                         <span className="font-bold text-sm">Create New</span>
-                        <span className="bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-lg leading-none transition-transform group-hover:rotate-90">＋</span>
+                        <span className="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-lg leading-none transition-transform group-hover:rotate-90">＋</span>
                     </button>
 
                     {MENU_ITEMS.map((item) => (
@@ -163,8 +163,8 @@ export default function AdminDashboard() {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === item.id
-                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                                : "text-indigo-200 hover:bg-white/5 hover:text-white"
                                 }`}
                         >
                             <span className="text-lg">{item.icon}</span>
@@ -173,15 +173,21 @@ export default function AdminDashboard() {
                     ))}
                 </div>
 
-                <div className="p-6 border-t border-gray-50 space-y-4">
+                <div className="p-6 border-t border-indigo-900/50 bg-indigo-950/50 backdrop-blur-md space-y-3">
+                    <Link
+                        href="/"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-indigo-300 hover:bg-white/10 hover:text-white transition-all underline decoration-indigo-500/0 hover:decoration-indigo-500/50 underline-offset-4"
+                    >
+                        <span className="text-base">🏠</span>
+                        Back to Home
+                    </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
                     >
-                        <span className="text-lg">🚪</span>
-                        Sign Out
+                        <span className="text-base">🚪</span>
+                        Logout
                     </button>
-
                 </div>
             </aside>
 

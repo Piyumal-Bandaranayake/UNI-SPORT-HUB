@@ -10,7 +10,6 @@ const MENU_ITEMS = [
     { id: "Schedule", icon: "📅", label: "Training Schedule" },
     { id: "Exercise", icon: "💪", label: "Exercise Schedule" },
     { id: "Achievements", icon: "🏆", label: "Achievements" },
-    { id: "Settings", icon: "⚙️", label: "Settings" },
 ];
 
 export default function CoachDashboard() {
@@ -197,7 +196,7 @@ export default function CoachDashboard() {
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+            <aside className="w-64 bg-emerald-50 border-r border-emerald-100 flex flex-col fixed inset-y-0 left-0 z-40">
                 <div className="p-8">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="text-2xl font-black tracking-tighter text-gray-900">
@@ -227,13 +226,20 @@ export default function CoachDashboard() {
                     ))}
                 </div>
 
-                <div className="p-6 border-t border-gray-50 space-y-4">
+                <div className="p-6 border-t border-emerald-100 bg-white/50 backdrop-blur-md space-y-3">
+                    <Link
+                        href="/"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-900/60 hover:bg-emerald-100/50 hover:text-emerald-900 transition-all"
+                    >
+                        <span className="text-base text-emerald-600/50">🏠</span>
+                        Back to Home
+                    </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <span className="text-lg">🚪</span>
-                        Sign Out
+                        <span className="text-base">🚪</span>
+                        Logout
                     </button>
                 </div>
             </aside>
@@ -489,25 +495,6 @@ export default function CoachDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Settings" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 mb-6">Coach Profile</h3>
-                            <div className="space-y-6 max-w-md">
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Full Name</label>
-                                    <input type="text" defaultValue={session?.user?.name} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" readOnly />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Specialization</label>
-                                    <input type="text" defaultValue="Professional Coach" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none" />
-                                </div>
-                                <div className="pt-4 flex gap-4">
-                                    <button className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-gray-800 transition-all">Update Profile</button>
-                                    <button onClick={() => signOut()} className="px-6 py-4 rounded-2xl font-bold text-sm text-rose-500 bg-rose-50 hover:bg-rose-100 transition-all">Sign Out</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
                 {/* Modal */}
                 {isModalOpen && (
