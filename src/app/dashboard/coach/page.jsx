@@ -410,34 +410,54 @@ export default function CoachDashboard() {
                     )}
 
                     {activeTab === "Exercise" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 mb-6">Exercise Schedule Requests</h3>
+                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                             <div className="flex justify-between items-center mb-10">
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Incoming Requests</h3>
+                                    <p className="text-xs text-gray-400 font-medium">Manage student consultations and plan adjustments.</p>
+                                </div>
+                                <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                    {exerciseRequests.length} Pending
+                                </div>
+                             </div>
+
                             {exerciseRequests.length === 0 ? (
-                                <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">💪</div>
-                                    <p className="text-gray-400 font-bold mb-2">No pending exercise requests.</p>
+                                <div className="text-center py-24 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200">
+                                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📩</div>
+                                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Inbox is clear</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {exerciseRequests.map((req) => (
-                                        <div key={req.id} className="p-6 rounded-[24px] border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all">
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <span className="text-xs font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-widest">{req.sessionType}</span>
-                                                    <span className="text-sm font-bold text-gray-900">{req.studentName}</span>
+                                        <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-emerald-100/20 transition-all border-l-4 border-l-emerald-600 group">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
+                                                        req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                    }`}>
+                                                        {req.type} • {req.category}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
                                                 </div>
-                                                <p className="text-sm font-bold text-gray-900">Requested time: {req.freeTime}</p>
-                                                <p className="text-xs font-medium text-gray-400 mt-1">📞 {req.contactNumber}</p>
+                                                <h4 className="text-lg font-black text-gray-900 mb-1">{req.studentName}</h4>
+                                                <p className="text-sm text-gray-500 font-medium leading-relaxed italic">"{req.detail}"</p>
+                                                <div className="flex items-center gap-4 mt-3">
+                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                                                        <span>📞</span> {req.contactNumber}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-3">
                                                 <button 
                                                     onClick={() => handleUpdateRequestStatus(req.id, "ACCEPTED")}
-                                                    className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
-                                                    Accept
+                                                    className="flex-1 lg:flex-none px-8 py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-gray-200"
+                                                >
+                                                    Approve
                                                 </button>
                                                 <button 
                                                     onClick={() => handleUpdateRequestStatus(req.id, "REJECTED")}
-                                                    className="px-6 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">
+                                                    className="flex-1 lg:flex-none px-8 py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
+                                                >
                                                     Decline
                                                 </button>
                                             </div>

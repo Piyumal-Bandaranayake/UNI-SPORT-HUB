@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/mongodb";
 import ExerciseSchedule from "@/models/ExerciseSchedule";
+import PlanRequest from "@/models/PlanRequest";
 import Coach from "@/models/Coach";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
@@ -27,7 +28,11 @@ export async function PATCH(req, { params }) {
             return NextResponse.json({ error: "Coach not found" }, { status: 404 });
         }
 
-        const request = await ExerciseSchedule.findById(id);
+        let request = await ExerciseSchedule.findById(id);
+        if (!request) {
+            request = await PlanRequest.findById(id);
+        }
+
         if (!request) {
             return NextResponse.json({ error: "Request not found" }, { status: 404 });
         }
