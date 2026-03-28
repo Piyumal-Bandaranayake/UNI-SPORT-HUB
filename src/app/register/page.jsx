@@ -138,84 +138,88 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f0f2f5] px-4 py-8 font-sans">
-            <div className="flex w-full max-w-[950px] h-[680px] bg-white rounded-[60px] overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-indigo-100">
+        <div className="flex h-screen w-full bg-white font-sans relative overflow-hidden">
+            {/* Back to Home Button */}
+            <Link 
+                href="/" 
+                className="absolute top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-lg border border-white/30 text-white rounded-full transition-all duration-300 group shadow-lg"
+            >
+                <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span className="font-bold text-xs tracking-wide">Back to Home</span>
+            </Link>
+
+            <div className="flex w-full h-full flex-col lg:flex-row">
                 {/* Left Side - Branding & Illustration */}
-                <div className="hidden lg:flex lg:w-[40%] bg-[#a5b4fc] p-12 flex-col justify-between relative overflow-hidden">
-                    <div className="z-10 animate-fade-in-down">
-                        <Link href="/login" className="inline-flex items-center text-white font-bold opacity-80 hover:opacity-100 transition-opacity mb-8">
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Back to Login
-                        </Link>
-                        <h1 className="text-white text-5xl font-black tracking-tighter">Join Us</h1>
-                        <p className="text-indigo-50 text-xl mt-6 font-medium opacity-90 leading-relaxed">
-                            Start your journey with UniSportHub and unlock your athletic potential at SLIIT.
+                <div className="hidden lg:flex lg:w-[30%] bg-gradient-to-br from-[#a5b4fc] to-[#818cf8] p-12 flex-col justify-between relative overflow-hidden h-full">
+                    <div className="z-10 animate-fade-in-down mt-6">
+                        <h1 className="text-white text-4xl font-extrabold tracking-tight drop-shadow-sm">Join Us</h1>
+                        <p className="text-indigo-50 text-base mt-3 font-medium opacity-90 leading-relaxed max-w-xs">
+                            Start your journey with UniSportHub and unlock your potential.
                         </p>
                     </div>
 
-                    <div className="relative z-10 w-full h-[400px] flex items-center justify-center">
+                    <div className="relative z-10 w-full h-[250px] flex items-center justify-center">
                         <img
                             src="/images/illustration.png"
                             alt="Student Athlete Illustration"
-                            className="w-full h-full object-contain animate-float"
+                            className="w-full h-full object-contain animate-float drop-shadow-2xl"
                         />
                     </div>
 
-                    <div className="z-10 text-indigo-100 text-sm font-semibold opacity-60">
-                        © 2024 UniSportHub. SLIIT Campus Sports.
+                    <div className="z-10 text-indigo-100 font-bold opacity-60 text-[10px] tracking-widest uppercase">
+                        © 2024 UniSportHub. SLIIT.
                     </div>
 
                     {/* Decorative elements */}
-                    <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-[-5%] left-[-5%] w-80 h-80 bg-indigo-900 opacity-20 rounded-full blur-3xl"></div>
+                    <div className="absolute top-[-5%] right-[-10%] w-64 h-64 bg-white opacity-10 rounded-full blur-[60px]"></div>
+                    <div className="absolute bottom-[10%] left-[-20%] w-80 h-80 bg-indigo-900 opacity-20 rounded-full blur-[80px]"></div>
                 </div>
 
                 {/* Right Side - Form */}
-                <div className="w-full lg:w-[60%] p-8 lg:p-14 flex flex-col justify-center overflow-y-auto bg-white custom-scrollbar">
-                    <div className="max-w-md mx-auto w-full space-y-6 py-6 transition-all duration-300">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Create Account</h2>
-                            <span className="text-slate-400 text-sm font-bold cursor-pointer hover:text-indigo-600 transition-colors hidden sm:block">SIGN UP</span>
+                <div className="w-full lg:w-[70%] p-6 lg:p-12 flex flex-col justify-center bg-white h-full custom-scrollbar overflow-y-auto">
+                    <div className="max-w-3xl mx-auto w-full space-y-4 py-4 animate-fade-in">
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-end">
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Create Account</h2>
+                                <span className="text-indigo-600 font-bold text-xs cursor-pointer hover:underline transition-all hidden sm:block uppercase tracking-tighter">NEW REGISTRATION</span>
+                            </div>
+                            <p className="text-slate-500 font-medium text-base">Join the SLIIT sports community.</p>
                         </div>
 
                         {error && (
-                            <div className="rounded-2xl bg-rose-50 p-4 border border-rose-100 animate-shake flex items-center gap-3">
-                                <div className="bg-rose-500 rounded-full p-1 text-white">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
+                            <div className="rounded-xl bg-rose-50 p-3 border border-rose-100 animate-shake flex items-center gap-3">
+                                <div className="bg-rose-500 rounded-full p-1 text-white shadow-sm">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </div>
-                                <p className="text-sm text-rose-700 font-bold">{error}</p>
+                                <p className="text-xs text-rose-700 font-bold">{error}</p>
                             </div>
                         )}
                         {success && (
-                            <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-100 animate-fade-in flex items-center gap-3">
-                                <div className="bg-emerald-500 rounded-full p-1 text-white">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                    </svg>
+                            <div className="rounded-xl bg-emerald-50 p-3 border border-emerald-100 animate-fade-in flex items-center gap-3">
+                                <div className="bg-emerald-500 rounded-full p-1 text-white shadow-sm">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
                                 </div>
-                                <p className="text-sm text-emerald-700 font-bold">{success}</p>
+                                <p className="text-xs text-emerald-700 font-bold">{success}</p>
                             </div>
                         )}
 
                         <form className="space-y-6" onSubmit={handleSubmit}>
-                            {/* Grid layout for Compact fields */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {/* Grid layout for fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                                 <div className="relative group">
                                     <input
                                         id="name"
                                         name="name"
                                         type="text"
                                         required
-                                        className="w-full border-b-2 border-slate-200 py-3 bg-transparent text-slate-900 placeholder-transparent focus:border-indigo-600 focus:outline-none transition-all duration-300 peer text-[15px]"
+                                        className="w-full border-b-2 border-slate-100 py-2 bg-transparent text-slate-900 placeholder-transparent focus:border-indigo-600 focus:outline-none transition-all duration-300 peer text-base font-medium"
                                         placeholder="Full Name"
                                         value={formData.name}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="name" className="absolute left-0 -top-3.5 text-slate-500 text-xs transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-3 peer-focus:-top-3.5 peer-focus:text-indigo-600 peer-focus:text-xs">Full Name</label>
+                                    <label htmlFor="name" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Full Name</label>
                                 </div>
 
                                 <div className="relative group">
@@ -223,7 +227,7 @@ export default function RegisterPage() {
                                         id="faculty"
                                         name="faculty"
                                         required
-                                        className="w-full border-b-2 border-slate-200 py-3 bg-transparent text-slate-800 focus:border-indigo-600 focus:outline-none transition-all duration-300 text-[15px] appearance-none"
+                                        className="w-full border-b-2 border-slate-100 py-2 bg-transparent text-slate-800 focus:border-indigo-600 focus:outline-none transition-all duration-300 text-base font-medium appearance-none cursor-pointer"
                                         value={formData.faculty}
                                         onChange={handleChange}
                                     >
@@ -236,78 +240,71 @@ export default function RegisterPage() {
                                         <option value="HU">HU – Humanities</option>
                                         <option value="FA">FA – Fine Arts</option>
                                     </select>
-                                    <div className="absolute right-0 top-4 pointer-events-none text-slate-400">
+                                    <div className="absolute right-0 top-3 pointer-events-none text-slate-300">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                     </div>
-                                    <label htmlFor="faculty" className="absolute left-0 -top-3.5 text-indigo-600 text-xs font-bold">Faculty</label>
+                                    <label htmlFor="faculty" className="absolute left-0 -top-2.5 text-indigo-600 text-xs font-extrabold uppercase tracking-wider">Faculty</label>
                                 </div>
-                            </div>
 
-                            <div className="relative group">
-                                <input
-                                    id="universityId"
-                                    name="universityId"
-                                    type="text"
-                                    required
-                                    className={`w-full border-b-2 py-3 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-[15px] ${idError ? "border-rose-400 focus:border-rose-600" : "border-slate-200 focus:border-indigo-600"}`}
-                                    placeholder="Registration Number"
-                                    value={formData.universityId}
-                                    onChange={handleChange}
-                                />
-                                <label htmlFor="universityId" className={`absolute left-0 -top-3.5 text-xs transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-3 peer-focus:-top-3.5 peer-focus:text-xs ${idError ? "text-rose-500 peer-focus:text-rose-600" : "text-slate-500 peer-focus:text-indigo-600"}`}>Registration Number</label>
-                                {idError ? (
-                                    <p className="absolute -bottom-5 left-0 text-[10px] text-rose-600 font-bold">{idError}</p>
-                                ) : formData.universityId && formData.faculty && (
-                                    <p className="absolute -bottom-5 left-0 text-[10px] text-emerald-600 font-bold">✓ Valid SLIIT ID</p>
-                                )}
-                            </div>
+                                <div className="relative group">
+                                    <input
+                                        id="universityId"
+                                        name="universityId"
+                                        type="text"
+                                        required
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${idError ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
+                                        placeholder="Registration Number"
+                                        value={formData.universityId}
+                                        onChange={handleChange}
+                                    />
+                                    <label htmlFor="universityId" className={`absolute left-0 -top-2.5 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-xs cursor-text uppercase tracking-wider ${idError ? "text-rose-500" : "text-slate-400"}`}>Registration No</label>
+                                    {idError ? (
+                                        <p className="absolute -bottom-4 left-0 text-[9px] text-rose-500 font-bold">{idError}</p>
+                                    ) : formData.universityId && formData.faculty && (
+                                        <p className="absolute -bottom-4 left-0 text-[10px] text-emerald-500 font-bold">✓ ID Valid</p>
+                                    )}
+                                </div>
 
-                            <div className="relative group pt-2">
-                                <input
-                                    id="universityEmail"
-                                    name="universityEmail"
-                                    type="email"
-                                    required
-                                    className={`w-full border-b-2 py-3 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-[15px] ${emailError ? "border-rose-400 focus:border-rose-600" : "border-slate-200 focus:border-indigo-600"}`}
-                                    placeholder="University Email"
-                                    value={formData.universityEmail}
-                                    onChange={handleChange}
-                                />
-                                <label htmlFor="universityEmail" className={`absolute left-0 -top-1.5 text-xs transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-5 peer-focus:-top-1.5 peer-focus:text-xs ${emailError ? "text-rose-500 peer-focus:text-rose-600" : "text-slate-500 peer-focus:text-indigo-600"}`}>University Email</label>
-                                {emailError ? (
-                                    <p className="absolute -bottom-5 left-0 text-[10px] text-rose-600 font-bold">{emailError}</p>
-                                ) : formData.universityEmail && formData.universityId && (
-                                    <p className="absolute -bottom-5 left-0 text-[10px] text-emerald-600 font-bold">✓ University email is valid</p>
-                                )}
-                            </div>
+                                <div className="relative group">
+                                    <input
+                                        id="universityEmail"
+                                        name="universityEmail"
+                                        type="email"
+                                        required
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${emailError ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
+                                        placeholder="University Email"
+                                        value={formData.universityEmail}
+                                        onChange={handleChange}
+                                    />
+                                    <label htmlFor="universityEmail" className={`absolute left-0 -top-2.5 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-xs cursor-text uppercase tracking-wider ${emailError ? "text-rose-500" : "text-slate-400"}`}>Email</label>
+                                    {emailError && (
+                                        <p className="absolute -bottom-4 left-0 text-[9px] text-rose-500 font-bold">{emailError}</p>
+                                    )}
+                                </div>
 
-                            <div className="space-y-8 pt-2">
                                 <div className="relative group">
                                     <input
                                         id="password"
                                         name="password"
                                         type="password"
                                         required
-                                        className={`w-full border-b-2 py-3 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-[15px] ${passwordError && formData.password ? "border-rose-400 focus:border-rose-600" : "border-slate-200 focus:border-indigo-600"}`}
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${passwordError && formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
                                         placeholder="Password"
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="password" title="Show password" className="absolute left-0 -top-3.5 text-slate-500 text-xs transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-3 peer-focus:-top-3.5 peer-focus:text-indigo-600 peer-focus:text-xs">Secure Password</label>
+                                    <label htmlFor="password" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Password</label>
                                     
-                                    {/* Real-time Checklist */}
-                                    <div className="mt-3 flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-1.5 pt-2">
                                         {[
-                                            { label: "8+ chars", test: (pw) => pw.length >= 8 },
-                                            { label: "Upper/Lower", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
-                                            { label: "Number", test: (pw) => /\d/.test(pw) },
-                                            { label: "Symbol", test: (pw) => /[@$!%*?&]/.test(pw) },
+                                            { label: "8+ Char", test: (pw) => pw.length >= 8 },
+                                            { label: "Aa", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
+                                            { label: "123", test: (pw) => /\d/.test(pw) },
                                         ].map((req, i) => {
                                             const isDone = req.test(formData.password);
                                             return (
-                                                <div key={i} className={`flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all ${isDone ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-100 text-slate-400"}`}>
-                                                    {isDone && <span className="mr-1">✓</span>}
-                                                    {req.label}
+                                                <div key={i} className={`flex items-center px-2 py-0.5 rounded text-[8px] font-bold border ${isDone ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-slate-50 border-slate-50 text-slate-300"}`}>
+                                                    {isDone ? "✓ " : ""}{req.label}
                                                 </div>
                                             );
                                         })}
@@ -320,32 +317,34 @@ export default function RegisterPage() {
                                         name="confirmPassword"
                                         type="password"
                                         required
-                                        className={`w-full border-b-2 py-3 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-[15px] ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-400 focus:border-rose-600" : "border-slate-200 focus:border-indigo-600"}`}
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
                                         placeholder="Confirm Password"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="confirmPassword" className="absolute left-0 -top-3.5 text-slate-500 text-xs transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-3 peer-focus:-top-3.5 peer-focus:text-indigo-600 peer-focus:text-xs">Confirm Password</label>
+                                    <label htmlFor="confirmPassword" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Confirm</label>
                                     {formData.confirmPassword && formData.confirmPassword !== formData.password && (
-                                        <p className="absolute -bottom-5 left-0 text-[10px] text-rose-600 font-bold">Passwords do not match</p>
+                                        <p className="absolute -bottom-4 left-0 text-[10px] text-rose-500 font-bold">Mismatched</p>
                                     )}
                                 </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-[#4f46e5] text-white py-4 rounded-2xl text-sm font-black tracking-widest uppercase shadow-[0_10px_20px_-10px_rgba(79,70,229,0.5)] hover:shadow-[0_15px_25px_-10px_rgba(79,70,229,0.6)] hover:bg-[#4338ca] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:bg-indigo-300 disabled:shadow-none"
-                            >
-                                {loading ? "Creating Account..." : "Register Now"}
-                            </button>
+                            <div className="pt-4 space-y-4">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-[#4f46e5] text-white py-3.5 rounded-xl text-base font-black shadow-[0_15px_30px_-10px_rgba(79,70,229,0.3)] hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.4)] hover:bg-[#4338ca] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 disabled:bg-indigo-300 disabled:shadow-none disabled:translate-y-0"
+                                >
+                                    {loading ? "CREATING…" : "REGISTER NOW"}
+                                </button>
 
-                            <p className="text-center text-sm text-slate-500 font-bold mb-8">
-                                Already have an account?{" "}
-                                <Link href="/login" className="text-indigo-600 hover:text-indigo-700 transition-all ml-1 border-b-2 border-indigo-100 hover:border-indigo-600">
-                                    Sign In
-                                </Link>
-                            </p>
+                                <p className="text-center text-sm text-slate-400 font-bold">
+                                    Already a member?{" "}
+                                    <Link href="/login" className="text-indigo-600 hover:underline ml-1">
+                                        Sign In
+                                    </Link>
+                                </p>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -366,26 +365,33 @@ export default function RegisterPage() {
                     background: #cbd5e1;
                 }
                 @keyframes float {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-15px); }
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    50% { transform: translateY(-15px) rotate(1deg); }
                 }
                 .animate-float {
                     animation: float 8s ease-in-out infinite;
                 }
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-8px); }
-                    75% { transform: translateX(8px); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
                 }
                 .animate-shake {
-                    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+                    animation: shake 0.4s ease-in-out;
                 }
-                @keyframes fadeInDown {
-                    from { opacity: 0; transform: translateY(-30px); }
-                    to { opacity: 1; transform: translateY(0); }
+                .animate-fade-in {
+                    animation: fadeIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
                 }
                 .animate-fade-in-down {
-                    animation: fadeInDown 0.8s ease-out forwards;
+                    animation: fadeInDown 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeInDown {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
         </div>

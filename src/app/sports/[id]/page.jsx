@@ -101,25 +101,7 @@ export default async function SportProfile({ params }) {
                             </div>
                         </section>
 
-                        {/* Description & Rules */}
-                        <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6">About the Department</h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                The {sport.name} department is dedicated to fostering athletic excellence and team spirit.
-                                We provide state-of-the-art facilities and professional coaching to help students excel in their chosen sport.
-                                Whether you're a beginner or an advanced athlete, we have programs tailored to your needs.
-                            </p>
-                            <div className="mt-8 grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Coach</div>
-                                    <div className="text-gray-900 font-bold">Available daily</div>
-                                </div>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Equipment</div>
-                                    <div className="text-gray-900 font-bold">Standard Gear</div>
-                                </div>
-                            </div>
-                        </section>
+
                     </div>
 
                     {/* Sidebar Actions */}

@@ -79,7 +79,7 @@ export default function SubAdminDashboard() {
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+            <aside className="w-64 bg-orange-50 border-r border-orange-100 flex flex-col fixed inset-y-0 left-0 z-40">
                 <div className="p-8">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="text-2xl font-black tracking-tighter text-gray-900">
@@ -123,13 +123,20 @@ export default function SubAdminDashboard() {
                     ))}
                 </div>
 
-                <div className="p-6 border-t border-gray-50 space-y-4">
+                <div className="p-6 border-t border-orange-100 bg-white/50 backdrop-blur-md space-y-3">
+                    <Link
+                        href="/"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-orange-900/60 hover:bg-orange-100/50 hover:text-orange-900 transition-all"
+                    >
+                        <span className="text-base text-orange-600/50">🏠</span>
+                        Back to Home
+                    </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <span className="text-lg">🚪</span>
-                        Sign Out
+                        <span className="text-base">🚪</span>
+                        Logout
                     </button>
                 </div>
             </aside>
@@ -191,7 +198,7 @@ export default function SubAdminDashboard() {
                 <div className="space-y-10">
                     {activeTab === "Overview" && (
                         <>
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 <StatCard label="Managed Depts" value={sports.length} color="text-sky-700" bg="bg-[#F0F9FF]" icon="🏢" subText="Assigned sports" />
                                 <StatCard 
                                     label="Equipment Items" 
@@ -199,122 +206,110 @@ export default function SubAdminDashboard() {
                                     color="text-amber-700" bg="bg-[#FFFBEB]" icon="🏸" subText="Total in inventory" 
                                 />
                                 <StatCard label="Notifications" value={Object.values(inventoryData).flat().filter(i => i.quantity < 10).length} color="text-rose-700" bg="bg-[#FFF1F2]" icon="🔔" subText="New alerts" />
-                                <StatCard label="Active Status" value="Online" color="text-emerald-700" bg="bg-[#ECFDF5]" icon="✅" subText="System operational" />
                             </div>
 
-                            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
-                                <div className="lg:col-span-2">
-                                    <h3 className="text-lg font-black text-gray-900 mb-8 flex items-center justify-between uppercase tracking-tight">
-                                        Department Overview
-                                        <button onClick={() => setActiveTab("Management")} className="text-sky-600 text-[10px] font-black uppercase tracking-widest hover:underline">View All Assets</button>
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {sports.map((sport) => (
-                                            <div key={sport.id} className="bg-white p-6 rounded-[28px] border border-gray-50 group hover:shadow-xl hover:shadow-sky-100/50 transition-all border-b-4 border-b-transparent hover:border-b-sky-500">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xl group-hover:bg-sky-600 group-hover:text-white transition-all">
-                                                            {sport.name.substring(0, 2).toUpperCase()}
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-gray-900 uppercase tracking-tight">{sport.name}</h4>
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Assigned Sport</span>
-                                                        </div>
+                            <div className="mt-12">
+                                <h3 className="text-lg font-black text-gray-900 mb-8 flex items-center justify-between uppercase tracking-tight">
+                                    Department Overview
+                                    <button onClick={() => setActiveTab("Management")} className="text-sky-600 text-[10px] font-black uppercase tracking-widest hover:underline">View All Assets</button>
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {sports.map((sport) => (
+                                        <div key={sport.id} className="bg-white p-6 rounded-[32px] border border-gray-100 group hover:shadow-xl hover:shadow-sky-100/30 transition-all border-b-4 border-b-transparent hover:border-b-sky-500 relative overflow-hidden">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-lg group-hover:bg-sky-600 group-hover:text-white transition-all shadow-sm">
+                                                        {sport.name.toLowerCase().includes("badminton") ? "🏸" : 
+                                                         sport.name.toLowerCase().includes("cricket") ? "🏏" : 
+                                                         sport.name.substring(0, 2).toUpperCase()}
                                                     </div>
-                                                    <Link href={`/sports/${sport.id}`} target="_blank" className="text-[10px] font-black uppercase text-gray-300 hover:text-sky-600 transition-colors">
-                                                        View ↗
-                                                    </Link>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 uppercase tracking-tight text-sm">{sport.name}</h4>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Assigned</span>
+                                                    </div>
                                                 </div>
-                                                
-                                                <Link 
-                                                    href={`/dashboard/sub-admin/sports/${sport.id}`} 
-                                                    className="w-full bg-gray-900 text-white py-3 rounded-2xl text-[10px] font-black uppercase text-center block hover:bg-sky-600 transition-all shadow-lg shadow-gray-100"
-                                                >
-                                                    Management Console
+                                                <Link href={`/sports/${sport.id}`} target="_blank" className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-[10px] text-gray-300 hover:text-sky-600 hover:bg-sky-50 transition-all">
+                                                    ↗
                                                 </Link>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
-                                    <h3 className="text-lg font-black text-gray-900 mb-8 flex items-center gap-2 uppercase tracking-tight">
-                                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                                        Recent Notifications
-                                    </h3>
-                                    <div className="space-y-4">
-                                        {/* Dynamic Low Stock Alerts */}
-                                        {Object.entries(inventoryData).flatMap(([sportId, items]) => 
-                                            items.filter(i => i.quantity < 10).map(item => ({
-                                                id: item._id,
-                                                type: "STOCK",
-                                                title: `${item.name} Low Stock`,
-                                                desc: `${sports.find(s => s.id === sportId)?.name} • ${item.quantity} units rem.`,
-                                                icon: "⚠️",
-                                                color: "text-rose-600",
-                                                bg: "bg-rose-50",
-                                                border: "border-rose-100"
-                                            }))
-                                        ).slice(0, 4).map((note, idx) => (
-                                            <div key={idx} className={`p-4 rounded-2xl border ${note.border} ${note.bg} flex items-center gap-4 transition-transform hover:scale-[1.02] shadow-sm`}>
-                                                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shadow-sm">{note.icon}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className={`text-xs font-black ${note.color} uppercase truncate`}>{note.title}</div>
-                                                    <div className="text-[10px] text-gray-500 font-medium truncate italic">{note.desc}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {/* Static Default Notifications */}
-                                        <div className="p-4 rounded-2xl border border-sky-100 bg-sky-50/50 flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shadow-sm">🛡️</div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-black text-sky-700 uppercase">System Active</div>
-                                                <div className="text-[10px] text-gray-500 font-medium font-bold italic">Dashboard monitor on.</div>
-                                            </div>
+                                            
+                                            <Link 
+                                                href={`/dashboard/sub-admin/sports/${sport.id}`} 
+                                                className="w-full bg-gray-900 text-white py-3 rounded-xl text-[10px] font-black uppercase text-center block hover:bg-sky-600 transition-all shadow-lg shadow-gray-100 active:scale-95"
+                                            >
+                                                Manage
+                                            </Link>
                                         </div>
-
-                                        {Object.values(inventoryData).flat().filter(i => i.quantity < 10).length === 0 && (
-                                            <div className="py-6 text-center border-2 border-dashed border-gray-100 rounded-3xl">
-                                                <div className="text-2xl mb-2">🎈</div>
-                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No Priority Alerts</div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button className="w-full mt-6 py-3 border border-gray-100 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:bg-gray-50 transition-all tracking-widest">
-                                        Clear History
-                                    </button>
+                                    ))}
                                 </div>
                             </div>
                         </>
                     )}
 
                     {activeTab === "Management" && (
-                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 mb-8 underline decoration-sky-200 underline-offset-8 decoration-4">Department Management</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-8">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-2xl font-black text-gray-900">Department Management</h3>
+                                    <p className="text-gray-400 text-sm font-medium mt-1">Select a department to manage its full operations and inventory.</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {sports.length > 0 ? sports.map((sport) => (
-                                    <div key={sport.id} className="p-6 bg-[#FAFBFD] rounded-[28px] border border-gray-50 group">
-                                         <div className="flex items-center justify-between mb-6">
-                                             <div className="font-black text-gray-900 uppercase tracking-tight">{sport.name}</div>
-                                             <span className="text-[10px] font-black bg-sky-50 text-sky-600 px-3 py-1 rounded-full uppercase">Managed</span>
-                                         </div>
-                                         <div className="space-y-3">
-                                             <Link 
+                                    <div key={sport.id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-sky-100/30 transition-all group overflow-hidden relative">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"></div>
+                                        
+                                        <div className="relative z-10 flex items-start justify-between mb-8">
+                                            <div className="w-16 h-16 bg-sky-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-sky-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                                                {sport.name.toLowerCase().includes("badminton") ? "🏸" : 
+                                                 sport.name.toLowerCase().includes("cricket") ? "🏏" : 
+                                                 sport.name.toLowerCase().includes("football") ? "⚽" : "🏅"}
+                                            </div>
+                                            <span className="bg-sky-50 text-sky-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-sky-100">
+                                                Active Dep
+                                            </span>
+                                        </div>
+
+                                        <div className="relative z-10 space-y-2 mb-8">
+                                            <h4 className="text-2xl font-black text-gray-900 uppercase tracking-tight leading-none">{sport.name}</h4>
+                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sport Admin Control</p>
+                                        </div>
+
+                                        <div className="relative z-10 grid grid-cols-2 gap-4 mb-8">
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center text-center">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Items</div>
+                                                <div className="text-lg font-black text-gray-900">{inventoryData[sport.id]?.length || 0}</div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center text-center">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Status</div>
+                                                <div className="text-[10px] font-black text-emerald-600 uppercase">Healthy</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative z-10 space-y-3">
+                                            <Link 
                                                 href={`/dashboard/sub-admin/sports/${sport.id}`}
-                                                className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all block text-center"
-                                             >
-                                                Open Management Dashboard
-                                             </Link>
-                                             <button 
-                                                onClick={() => setActiveTab("Management")} 
-                                                className="w-full bg-white border border-gray-100 py-3 rounded-2xl text-[10px] font-black uppercase text-gray-600 hover:bg-sky-50 hover:text-sky-600 transition-all"
-                                             >
-                                                View Management
-                                             </button>
-                                         </div>
+                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl text-xs font-black uppercase text-center block hover:bg-sky-600 hover:-translate-y-1 transition-all shadow-xl active:scale-95"
+                                            >
+                                                Open Console
+                                            </Link>
+                                            <Link
+                                                href={`/sports/${sport.id}`}
+                                                target="_blank"
+                                                className="w-full bg-white border border-gray-100 py-4 rounded-2xl text-xs font-black uppercase text-gray-400 text-center block hover:bg-gray-50 hover:text-gray-900 transition-all"
+                                            >
+                                                Public View
+                                            </Link>
+                                        </div>
                                     </div>
-                                )) : <div className="text-gray-400 italic py-10 text-center col-span-2">No departments assigned to you.</div>}
+                                )) : (
+                                    <div className="col-span-full py-20 bg-white rounded-[40px] border border-dashed border-gray-200 text-center flex flex-col items-center justify-center">
+                                        <span className="text-5xl mb-6">🏢</span>
+                                        <h3 className="text-xl font-black text-gray-900 mb-2">No Departments Assigned</h3>
+                                        <p className="text-gray-400 text-sm max-w-xs mx-auto">Please contact the system administrator to assign you to a sports department.</p>
+                                    </div>
+                                )}
                             </div>
                          </div>
                     )}

@@ -128,7 +128,7 @@ export default function StudentDashboard() {
     return (
         <div className="flex min-h-screen bg-[#F0F2F5]" suppressHydrationWarning>
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0 z-40">
+            <aside className="w-64 bg-sky-50 border-r border-sky-100 flex flex-col fixed inset-y-0 left-0 z-40">
                 <div className="p-8">
                     <Link href="/" className="flex items-center gap-2">
                         <span className="text-2xl font-black tracking-tighter text-gray-900">
@@ -201,13 +201,20 @@ export default function StudentDashboard() {
                     )}
                 </div>
 
-                <div className="p-6 border-t border-gray-50 space-y-4">
+                <div className="p-6 border-t border-sky-100 bg-white/50 backdrop-blur-md space-y-3">
+                    <Link
+                        href="/"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-indigo-900/60 hover:bg-sky-100/50 hover:text-indigo-900 transition-all"
+                    >
+                        <span className="text-base text-indigo-600/50">🏠</span>
+                        Back to Home
+                    </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-rose-500 hover:bg-rose-50 transition-all"
+                        className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <span className="text-lg">🚪</span>
-                        Sign Out
+                        <span className="text-base">🚪</span>
+                        Logout
                     </button>
                 </div>
             </aside>

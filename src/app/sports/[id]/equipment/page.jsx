@@ -32,31 +32,51 @@ export default async function EquipmentListing({ params }) {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
-            {/* Header Section */}
-            <div className="bg-white border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-6 py-12">
-                    <Link 
-                        href={`/sports/${id}`} 
-                        className="text-gray-500 hover:text-indigo-600 mb-6 inline-flex items-center gap-2 text-sm font-medium transition-colors group"
-                    >
-                        <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to {sport.name}
-                    </Link>
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div>
-                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight uppercase">
-                                Equipment <span className="text-indigo-600">Rental</span>
-                            </h1>
-                            <p className="mt-4 text-gray-500 text-lg max-w-2xl font-medium">
-                                Browse and book available {sport.name} gear for your next practice or match.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3 bg-indigo-50 px-6 py-4 rounded-3xl border border-indigo-100/50">
-                            <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-indigo-200">
-                                🏸
+            {/* Hero Section */}
+            <div className="relative h-[350px] w-full overflow-hidden">
+                {sport.image ? (
+                    <img
+                        src={sport.image}
+                        alt={sport.name}
+                        className="w-full h-full object-cover scale-110 blur-[2px] opacity-90 transition-all duration-700"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-indigo-600 flex items-center justify-center">
+                        <span className="text-9xl font-black text-white/20 uppercase tracking-tighter">
+                            {sport.name.substring(0, 2)}
+                        </span>
+                    </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-black/40 to-black/60"></div>
+                
+                <div className="absolute inset-0 flex items-center">
+                    <div className="max-w-7xl mx-auto px-6 w-full pt-12">
+                        <Link 
+                            href={`/sports/${id}`} 
+                            className="text-white/70 hover:text-white mb-8 inline-flex items-center gap-2 text-sm font-bold transition-all group backdrop-blur-md bg-white/10 px-4 py-2 rounded-full border border-white/20"
+                        >
+                            <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to {sport.name}
+                        </Link>
+                        
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
+                            <div className="animate-fade-in-down">
+                                <span className="inline-block bg-indigo-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-4 shadow-lg shadow-indigo-500/30">Official Gear</span>
+                                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase drop-shadow-2xl">
+                                    EQUIPMENT <span className="text-indigo-400">RENTAL</span>
+                                </h1>
+                                <p className="mt-4 text-white/80 text-lg max-w-2xl font-medium leading-relaxed">
+                                    Browse and book available {sport.name} gear for your next practice or match. Premium quality equipment for registered athletes.
+                                </p>
                             </div>
-                            <div>
-                                <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest leading-none mb-1">Total Items</div>
-                                <div className="text-xl font-black text-indigo-900 leading-none">{equipments.length} Available</div>
+                            
+                            <div className="flex items-center gap-4 bg-white p-6 rounded-[32px] border border-white/20 shadow-2xl backdrop-blur-xl animate-fade-in scale-100 hover:scale-105 transition-transform duration-300">
+                                <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-3xl shadow-xl shadow-indigo-200">
+                                    🏸
+                                </div>
+                                <div className="pr-4">
+                                    <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1.5">Inventory Status</div>
+                                    <div className="text-2xl font-black text-gray-900 leading-none">{equipments.length} <span className="text-indigo-600 text-sm font-bold ml-1 uppercase">Available</span></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -87,6 +107,23 @@ export default async function EquipmentListing({ params }) {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-800 rounded-full -translate-y-1/2 translate-x-1/2 opacity-20 blur-3xl"></div>
                 </div>
             </div>
+            {/* In-page animations */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeInDown {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in {
+                    animation: fadeIn 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                .animate-fade-in-down {
+                    animation: fadeInDown 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+            `}} />
         </div>
     );
 }
