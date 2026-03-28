@@ -5,6 +5,11 @@ import Coach from "@/models/Coach";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
+const NAME_MIN_LENGTH = 3;
+const NAME_MAX_LENGTH = 60;
+const DESCRIPTION_MIN_LENGTH = 20;
+const DESCRIPTION_MAX_LENGTH = 300;
+
 export async function POST(req) {
     try {
         const session = await auth();
@@ -14,9 +19,38 @@ export async function POST(req) {
 
         const { name, description, image } = await req.json();
         const trimmedName = name?.trim();
+        const trimmedDescription = description?.trim();
 
         if (!trimmedName) {
             return NextResponse.json({ error: "Sport name is required." }, { status: 400 });
+        }
+
+        if (trimmedName.length < NAME_MIN_LENGTH) {
+            return NextResponse.json({ error: `Sport name must be at least ${NAME_MIN_LENGTH} characters.` }, { status: 400 });
+        }
+
+        if (trimmedName.length > NAME_MAX_LENGTH) {
+            return NextResponse.json({ error: `Sport name must be ${NAME_MAX_LENGTH} characters or fewer.` }, { status: 400 });
+        }
+
+        if (!trimmedDescription) {
+            return NextResponse.json({ error: "Department synopsis is required." }, { status: 400 });
+        }
+
+        if (trimmedDescription.length < DESCRIPTION_MIN_LENGTH) {
+            return NextResponse.json({ error: `Department synopsis must be at least ${DESCRIPTION_MIN_LENGTH} characters.` }, { status: 400 });
+        }
+
+        if (trimmedDescription.length > DESCRIPTION_MAX_LENGTH) {
+            return NextResponse.json({ error: `Department synopsis must be ${DESCRIPTION_MAX_LENGTH} characters or fewer.` }, { status: 400 });
+        }
+
+        if (!image) {
+            return NextResponse.json({ error: "Sport image is required." }, { status: 400 });
+        }
+
+        if (typeof image !== "string" || !image.startsWith("data:image/")) {
+            return NextResponse.json({ error: "Please upload a valid image file." }, { status: 400 });
         }
 
         await dbConnect();
@@ -30,9 +64,9 @@ export async function POST(req) {
             return NextResponse.json({ error: `Sport department "${trimmedName}" already exists.` }, { status: 400 });
         }
 
-        const newSport = await Sport.create({ name: trimmedName, description, image });
+        const newSport = await Sport.create({ name: trimmedName, description: trimmedDescription, image });
 
-        return NextResponse.json({ success: `Sport "${name}" created successfully.`, data: newSport }, { status: 201 });
+        return NextResponse.json({ success: `Sport "${trimmedName}" created successfully.`, data: newSport }, { status: 201 });
     } catch (err) {
         console.error("createSport API error:", err);
         return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
