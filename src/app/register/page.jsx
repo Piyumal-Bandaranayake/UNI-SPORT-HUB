@@ -14,6 +14,8 @@ export default function RegisterPage() {
         confirmPassword: "",
     });
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [idError, setIdError] = useState("");
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
@@ -286,24 +288,41 @@ export default function RegisterPage() {
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${passwordError && formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium pr-10 ${passwordError && formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
                                         placeholder="Password"
                                         value={formData.password}
                                         onChange={handleChange}
                                     />
                                     <label htmlFor="password" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Password</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-0 top-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825M19.914 11.082C20.841 12.33 21.05 13.924 20.35 15.35M19.914 11.082a9.04 9.04 0 00-1.87-2.673l-4.168 4.168" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
                                     
-                                    <div className="flex flex-wrap gap-1.5 pt-2">
+                                    <div className="flex flex-wrap gap-2 pt-2">
                                         {[
                                             { label: "8+ Char", test: (pw) => pw.length >= 8 },
                                             { label: "Aa", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
                                             { label: "123", test: (pw) => /\d/.test(pw) },
+                                            { label: "#@$", test: (pw) => /[@$!%*?&]/.test(pw) },
                                         ].map((req, i) => {
                                             const isDone = req.test(formData.password);
                                             return (
-                                                <div key={i} className={`flex items-center px-2 py-0.5 rounded text-[8px] font-bold border ${isDone ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-slate-50 border-slate-50 text-slate-300"}`}>
+                                                <div key={i} className={`flex items-center px-2 py-0.5 rounded text-[8px] font-black border transition-all duration-300 ${isDone ? "bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm" : "bg-slate-50 border-slate-50 text-slate-300/50"}`}>
                                                     {isDone ? "✓ " : ""}{req.label}
                                                 </div>
                                             );
@@ -315,14 +334,30 @@ export default function RegisterPage() {
                                     <input
                                         id="confirmPassword"
                                         name="confirmPassword"
-                                        type="password"
+                                        type={showConfirmPassword ? "text" : "password"}
                                         required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium pr-10 ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
                                         placeholder="Confirm Password"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
                                     />
                                     <label htmlFor="confirmPassword" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Confirm</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-0 top-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825M19.914 11.082C20.841 12.33 21.05 13.924 20.35 15.35M19.914 11.082a9.04 9.04 0 00-1.87-2.673l-4.168 4.168" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
                                     {formData.confirmPassword && formData.confirmPassword !== formData.password && (
                                         <p className="absolute -bottom-4 left-0 text-[10px] text-rose-500 font-bold">Mismatched</p>
                                     )}

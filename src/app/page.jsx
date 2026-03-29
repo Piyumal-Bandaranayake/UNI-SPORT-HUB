@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/mongodb";
 import Sport from "@/models/Sport";
 import Event from "@/models/Event";
+import Achievement from "@/models/Achievement";
 import HeroSlideshow from "@/components/HeroSlideshow";
 import EventCard from "@/components/EventCard";
 
@@ -18,7 +19,12 @@ export default async function Home() {
     .limit(4)
     .lean();
 
-  console.log(`[Home] Fetched ${sports.length} sports and ${events.length} events.`);
+  const achievements = await Achievement.find({})
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .lean();
+
+  console.log(`[Home] Fetched ${sports.length} sports, ${events.length} events, and ${achievements.length} achievements.`);
 
   return (
     <div className="min-h-screen bg-white">
@@ -176,6 +182,63 @@ export default async function Home() {
                 </button>
               </div>
             </>
+          )}
+        </div>
+      </div>
+
+      {/* Achievements Section */}
+      <div id="achievements" className="py-24 bg-gray-50/30 relative overflow-hidden">
+        {/* Artistic Background Components */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-amber-50 rounded-full blur-[100px] opacity-100 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] bg-sky-50 rounded-full blur-[100px] opacity-100 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16 relative">
+            <div className="inline-block px-4 py-1.5 mb-4 text-xs font-bold tracking-widest text-amber-600 uppercase bg-amber-50 rounded-full">
+              Championship DNA
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+              Achievements & <span className="text-amber-500">Glory</span>
+            </h2>
+            <div className="h-1.5 w-20 bg-amber-500 mx-auto rounded-full mb-6"></div>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto leading-relaxed">
+              Celebrating the excellence, hard work, and triumphs of our university athletes. 
+              Witness the history of our sporting success.
+            </p>
+          </div>
+
+          {achievements.length === 0 ? (
+             <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-amber-100">
+               <div className="text-4xl mb-4">🏆</div>
+               <p className="text-gray-400 font-medium italic">New records are currently being written. Stay tuned!</p>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {achievements.map((ach) => (
+                <div 
+                  key={ach._id.toString()} 
+                  className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-amber-100/30 transition-all duration-500 group flex flex-col items-center text-center p-2"
+                >
+                  <div className="relative w-full aspect-square md:aspect-[4/3] rounded-[28px] overflow-hidden mb-6">
+                    <img 
+                      src={ach.image} 
+                      alt={ach.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    />
+                    <div className="absolute top-4 left-4">
+                       <span className="bg-white/90 backdrop-blur-md text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest text-amber-600 shadow-sm border border-amber-100">
+                         {ach.sportName}
+                       </span>
+                    </div>
+                  </div>
+                  <div className="px-6 pb-8">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-2">Achieved on {ach.date}</div>
+                    <h4 className="text-xl font-black text-gray-900 mb-3 group-hover:text-amber-500 transition-colors leading-tight">{ach.title}</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed italic line-clamp-3">"{ach.description}"</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

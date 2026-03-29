@@ -26,6 +26,7 @@ export default function StudentDashboard() {
     const [bookings, setBookings] = useState([]);
     const [coaches, setCoaches] = useState([]);
     const [trainingSchedules, setTrainingSchedules] = useState([]);
+    const [exerciseRequests, setExerciseRequests] = useState([]);
     const [isPending, startTransition] = useTransition();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,7 +83,8 @@ export default function StudentDashboard() {
                     fetch("/api/student/me"),
                     fetch("/api/student/coaches"),
                     fetch("/api/student/bookings"),
-                    fetch("/api/student/training-schedules")
+                    fetch("/api/student/training-schedules"),
+                    fetch("/api/student/schedule-exercise")
                 ]);
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
@@ -103,6 +105,11 @@ export default function StudentDashboard() {
                 if (schedulesRes.ok) {
                     const schedulesData = await schedulesRes.json();
                     setTrainingSchedules(schedulesData || []);
+                }
+                const exerciseRequestsRes = await fetch("/api/student/schedule-exercise");
+                if (exerciseRequestsRes.ok) {
+                    const exerciseRequestsData = await exerciseRequestsRes.json();
+                    setExerciseRequests(exerciseRequestsData || []);
                 }
             } catch (err) {
                 console.error("Failed to fetch data:", err);
@@ -175,6 +182,13 @@ export default function StudentDashboard() {
             if (res.ok) {
                 alert("Exercise session scheduled successfully! Waiting for coach approval.");
                 setExerciseFormData({ coachId: "", contactNumber: "", freeTime: "", sessionType: "" });
+                // Refresh exercise requests
+                const reqRes = await fetch("/api/student/schedule-exercise");
+                if (reqRes.ok) {
+                    const reqData = await reqRes.json();
+                    setExerciseRequests(reqData);
+                }
+                setActiveTab("Exercise");
             } else {
                 const data = await res.json();
                 setErrors({ ...errors, scheduleSubmit: data.error || "Failed to schedule exercise" });
@@ -638,8 +652,59 @@ export default function StudentDashboard() {
                                         ))
                                     )}
                                 </div>
-                            </section>
-                        </div>
+                             </section>
+ 
+                             <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
+                                 <div className="flex items-center gap-4 mb-10">
+                                     <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl">🤝</div>
+                                     <div>
+                                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">COACHING SESSIONS</h3>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requested & Approved consultations</p>
+                                     </div>
+                                 </div>
+ 
+                                 <div className="space-y-4">
+                                     {exerciseRequests.length === 0 ? (
+                                         <div className="py-20 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100 flex flex-col items-center gap-4">
+                                             <div className="text-4xl opacity-20">📅</div>
+                                             <p className="text-xs text-gray-400 font-medium">No personal sessions requested yet.</p>
+                                         </div>
+                                     ) : (
+                                         exerciseRequests.map((req, idx) => (
+                                             <div key={req._id || idx} className="flex items-center justify-between p-6 rounded-[28px] bg-gray-50/50 border border-gray-100 group hover:bg-white hover:shadow-lg transition-all">
+                                                 <div className="flex items-center gap-5">
+                                                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-sm ${
+                                                         req.status === 'APPROVED' ? 'bg-emerald-600 text-white' : 
+                                                         req.status === 'REJECTED' ? 'bg-rose-600 text-white' : 
+                                                         'bg-indigo-600 text-white'
+                                                     }`}>
+                                                         {req.sessionType === 'ONLINE' ? '💻' : '🏃'}
+                                                     </div>
+                                                     <div>
+                                                         <div className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase">
+                                                             Consultation with {req.coachId?.name || "Coach"}
+                                                         </div>
+                                                         <div className="flex items-center gap-3 mt-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-gray-400">🕒 {req.freeTime}</span>
+                                                             <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
+                                                             <span className={`text-[9px] font-black uppercase ${
+                                                                 req.status === 'APPROVED' ? 'text-emerald-500' : 
+                                                                 req.status === 'REJECTED' ? 'text-rose-500' : 
+                                                                 'text-amber-500'
+                                                             }`}>{req.status}</span>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 <div className="text-right">
+                                                     <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1.5">Session Type</div>
+                                                     <div className="text-[10px] font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100">{req.sessionType}</div>
+                                                 </div>
+                                             </div>
+                                         ))
+                                     )}
+                                 </div>
+                             </section>
+                         </div>
                     )}
 
                     {activeTab === "Schedule Exercise" && (

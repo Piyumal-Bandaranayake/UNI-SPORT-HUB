@@ -13,7 +13,7 @@ export async function DELETE(req, { params }) {
         await dbConnect();
         
         const { universityId } = session.user;
-        const { id } = params;
+        const { id } = await params;
         
         const schedule = await Schedule.findOne({ _id: id });
         if (!schedule) {

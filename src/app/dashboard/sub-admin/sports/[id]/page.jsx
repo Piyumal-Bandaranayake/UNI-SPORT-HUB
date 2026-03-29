@@ -42,9 +42,42 @@ export default function SportManagementDashboard() {
     const [updateData, setUpdateData] = useState({ name: "", description: "", image: "" });
     const [updateStatus, setUpdateStatus] = useState({ loading: false, uploadLoading: false, error: "", success: "" });
 
-    const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD", image: "" });
-    const [customItemName, setCustomItemName] = useState("");
+    const [newUserErrors, setUserErrors] = useState({});
     const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
+    const [eventErrors, setEventErrors] = useState({});
+
+    const validateEventField = (name, value) => {
+        let error = "";
+        if (name === "name" && !value) error = "Event name is required.";
+        if (name === "date") {
+            if (!value) error = "Event date is required.";
+            else {
+                const selectedDate = new Date(value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selectedDate < today) error = "Date cannot be in the past.";
+            }
+        }
+        if (name === "time" && !value) error = "Event time is required.";
+        if (name === "location" && !value) error = "Location is required.";
+        
+        setEventErrors(prev => ({ ...prev, [name]: error }));
+        return error;
+    };
+
+    const validateEquipmentField = (name, value) => {
+        let error = "";
+        if (name === "name" && !value) error = "Item name is required.";
+        if (name === "customName" && newItem.name === "Custom Gear" && !value) error = "Specify custom item name.";
+        if (name === "category" && !value) error = "Please select a category.";
+        if (name === "quantity") {
+            if (value === "" || value === null) error = "Stock quantity is required.";
+            else if (parseInt(value) < 0) error = "Initial stock cannot be negative.";
+        }
+        
+        setEquipmentErrors(prev => ({ ...prev, [name]: error }));
+        return error;
+    };
 
     useEffect(() => {
         const fetchSportDetails = async () => {
@@ -128,16 +161,25 @@ export default function SportManagementDashboard() {
     const handleAddItem = async (e) => {
         e.preventDefault();
         setUpdateStatus({ ...updateStatus, uploadLoading: true, error: "" });
+        
+        // Final validation
+        const e1 = validateEquipmentField("name", newItem.name);
+        const e2 = validateEquipmentField("category", newItem.category);
+        const e3 = validateEquipmentField("quantity", newItem.quantity);
+        const e4 = newItem.name === "Custom Gear" ? validateEquipmentField("customName", customItemName) : "";
+
+        if (e1 || e2 || e3 || e4) {
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Please correct the highlighted errors." });
+            return;
+        }
+
         try {
             const finalName = newItem.name === "Custom Gear" ? customItemName : newItem.name;
-            if (!finalName) throw new Error("Please provide an item name.");
             
-            if (newItem.quantity < 0) {
-                throw new Error("Initial stock cannot be negative.");
-            }
-
             if (inventory.some(item => item.name.toLowerCase() === finalName.trim().toLowerCase())) {
-                throw new Error(`${finalName} is already in the inventory.`);
+                setEquipmentErrors(prev => ({ ...prev, name: `${finalName} is already in the inventory.` }));
+                setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Duplicate item detected." });
+                return;
             }
 
             let imageUrl = newItem.image;
@@ -270,6 +312,17 @@ export default function SportManagementDashboard() {
         e.preventDefault();
         setUpdateStatus({ ...updateStatus, uploadLoading: true, error: "", success: "" });
         
+        // Final validation
+        const e1 = validateEventField("name", newEvent.name);
+        const e2 = validateEventField("date", newEvent.date);
+        const e3 = validateEventField("time", newEvent.time);
+        const e4 = validateEventField("location", newEvent.location);
+
+        if (e1 || e2 || e3 || e4) {
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Please correct the highlighted errors." });
+            return;
+        }
+
         try {
             let imageUrl = newEvent.image;
             
@@ -849,46 +902,74 @@ export default function SportManagementDashboard() {
                                                          />
                                                      </div>
                                                  </div>
-
+                                                 
                                                  <div className="grid grid-cols-2 gap-x-5 gap-y-4">
                                                      <div className="col-span-2">
-                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Event Identity / Name</label>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                             Event Identity / Name
+                                                             {eventErrors.name && <span className="text-rose-500 lowercase normal-case">{eventErrors.name}</span>}
+                                                         </label>
                                                          <input 
                                                              type="text" required
                                                              value={newEvent.name}
-                                                             onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
-                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             onChange={(e) => {
+                                                                 const val = e.target.value;
+                                                                 setNewEvent({...newEvent, name: val});
+                                                                 validateEventField("name", val);
+                                                             }}
+                                                             className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${eventErrors.name ? "border-rose-100 bg-rose-50/30" : "border-gray-100"}`}
                                                              placeholder="e.g. Weekly Varsity Training"
                                                          />
                                                      </div>
-
+ 
                                                      <div>
-                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Date</label>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                             Date
+                                                             {eventErrors.date && <span className="text-rose-500 lowercase normal-case shrink-0">{eventErrors.date}</span>}
+                                                         </label>
                                                          <input 
                                                              type="date" required
                                                              value={newEvent.date}
-                                                             onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             onChange={(e) => {
+                                                                 const val = e.target.value;
+                                                                 setNewEvent({...newEvent, date: val});
+                                                                 validateEventField("date", val);
+                                                             }}
+                                                             className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${eventErrors.date ? "border-rose-100 bg-rose-50/30" : "border-gray-100"}`}
                                                          />
                                                      </div>
-
+ 
                                                      <div>
-                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Time</label>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                             Time
+                                                             {eventErrors.time && <span className="text-rose-500 lowercase normal-case">{eventErrors.time}</span>}
+                                                         </label>
                                                          <input 
                                                              type="time" required
                                                              value={newEvent.time}
-                                                             onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
-                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             onChange={(e) => {
+                                                                 const val = e.target.value;
+                                                                 setNewEvent({...newEvent, time: val});
+                                                                 validateEventField("time", val);
+                                                             }}
+                                                             className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${eventErrors.time ? "border-rose-100 bg-rose-50/30" : "border-gray-100"}`}
                                                          />
                                                      </div>
-
+ 
                                                      <div className="col-span-2">
-                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Venue / Location</label>
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                             Venue / Location
+                                                             {eventErrors.location && <span className="text-rose-500 lowercase normal-case">{eventErrors.location}</span>}
+                                                         </label>
                                                          <input 
                                                              type="text" required
                                                              value={newEvent.location}
-                                                             onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
-                                                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 focus:bg-white outline-none transition-all" 
+                                                             onChange={(e) => {
+                                                                 const val = e.target.value;
+                                                                 setNewEvent({...newEvent, location: val});
+                                                                 validateEventField("location", val);
+                                                             }}
+                                                             className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${eventErrors.location ? "border-rose-100 bg-rose-50/30" : "border-gray-100"}`}
                                                              placeholder="e.g. SLIIT Main Sports Complex"
                                                          />
                                                      </div>
@@ -1063,12 +1144,19 @@ export default function SportManagementDashboard() {
                                                 </div>
                                             )}
                                             <div>
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Item Type / Name</label>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                    Item Type / Name
+                                                    {equipmentErrors.name && <span className="text-rose-500 lowercase normal-case">{equipmentErrors.name}</span>}
+                                                </label>
                                                 <select 
                                                     required
                                                     value={newItem.name}
-                                                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setNewItem({...newItem, name: val});
+                                                        validateEquipmentField("name", val);
+                                                    }}
+                                                    className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${equipmentErrors.name ? "border-rose-100 bg-rose-50/30" : "border-transparent"}`}
                                                 >
                                                     <option value="">Select Equipment</option>
                                                     {sport && (SPORT_EQUIPMENT_MAP[sport.name.toUpperCase()] || [])
@@ -1079,22 +1167,36 @@ export default function SportManagementDashboard() {
                                                     <option value="Custom Gear">Other / Custom Gear</option>
                                                 </select>
                                                 {newItem.name === "Custom Gear" && (
-                                                    <input 
-                                                        type="text" required
-                                                        className="mt-3 w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none animate-in fade-in" 
-                                                        placeholder="Specify item name..."
-                                                        value={customItemName}
-                                                        onChange={(e) => setCustomItemName(e.target.value)}
-                                                    />
+                                                    <div className="mt-3 relative">
+                                                        <input 
+                                                            type="text" required
+                                                            className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none animate-in fade-in transition-all ${equipmentErrors.customName ? "border-rose-100 bg-rose-50/30" : "border-transparent"}`} 
+                                                            placeholder="Specify item name..."
+                                                            value={customItemName}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setCustomItemName(val);
+                                                                validateEquipmentField("customName", val);
+                                                            }}
+                                                        />
+                                                        {equipmentErrors.customName && <p className="text-[9px] text-rose-500 font-bold mt-1 ml-2">{equipmentErrors.customName}</p>}
+                                                    </div>
                                                 )}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Category</label>
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                        Category
+                                                        {equipmentErrors.category && <span className="text-rose-500 lowercase normal-case">{equipmentErrors.category}</span>}
+                                                    </label>
                                                     <select 
                                                         value={newItem.category}
-                                                        onChange={(e) => setNewItem({...newItem, category: e.target.value})}
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setNewItem({...newItem, category: val});
+                                                            validateEquipmentField("category", val);
+                                                        }}
+                                                        className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${equipmentErrors.category ? "border-rose-100 bg-rose-50/30" : "border-transparent"}`}
                                                     >
                                                         <option value="">Select Category</option>
                                                         {UNIVERSAL_CATEGORIES.map(cat => (
@@ -1103,16 +1205,20 @@ export default function SportManagementDashboard() {
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Initial Stock</label>
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                        Initial Stock
+                                                        {equipmentErrors.quantity && <span className="text-rose-500 lowercase normal-case">{equipmentErrors.quantity}</span>}
+                                                    </label>
                                                     <input 
-                                                        type="number" required min="0"
+                                                        type="number" required
                                                         value={newItem.quantity === 0 ? "" : newItem.quantity}
                                                         onChange={(e) => {
                                                             const val = e.target.value;
-                                                            setNewItem({...newItem, quantity: val === "" ? 0 : parseInt(val)})
+                                                            setNewItem({...newItem, quantity: val === "" ? 0 : parseInt(val)});
+                                                            validateEquipmentField("quantity", val);
                                                         }}
                                                         placeholder="0"
-                                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 ring-sky-50 outline-none"
+                                                        className={`w-full bg-gray-50 border-2 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all ${equipmentErrors.quantity ? "border-rose-100 bg-rose-50/30" : "border-transparent"}`}
                                                     />
                                                 </div>
                                             </div>
