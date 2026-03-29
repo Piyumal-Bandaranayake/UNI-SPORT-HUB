@@ -14,8 +14,8 @@ export async function GET() {
 
         await dbConnect();
         
-        // Find the coach by their universityId from the session
-        const coach = await Coach.findOne({ universityId: session.user.universityId });
+        // Find the coach by their email from the session metadata
+        const coach = await Coach.findOne({ email: session.user.universityEmail });
         if (!coach) {
             return NextResponse.json({ error: "Coach not found" }, { status: 404 });
         }
@@ -53,5 +53,35 @@ export async function GET() {
     } catch (err) {
         console.error("GET exercise requests API error:", err);
         return NextResponse.json({ error: "Failed to fetch exercise requests" }, { status: 500 });
+    }
+}
+
+export async function PATCH(req) {
+    try {
+        const session = await auth();
+        if (!session || !session.user || session.user.role !== "COACH") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id, status, type } = await req.json();
+        if (!id || !status || !type) {
+            return NextResponse.json({ error: "ID, status and type are required" }, { status: 400 });
+        }
+
+        await dbConnect();
+        
+        let result;
+        if (type === "SESSION") {
+            result = await ExerciseSchedule.findByIdAndUpdate(id, { status }, { new: true });
+        } else if (type === "PLAN") {
+            result = await PlanRequest.findByIdAndUpdate(id, { status }, { new: true });
+        }
+
+        if (!result) return NextResponse.json({ error: "Request not found" }, { status: 404 });
+
+        return NextResponse.json({ success: true, status: result.status });
+    } catch (err) {
+        console.error("PATCH exercise requests API error:", err);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

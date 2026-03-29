@@ -7,6 +7,7 @@ import { signIn } from "next-auth/react";
 
 function LoginContent() {
     const [formData, setFormData] = useState({ universityId: "", password: "" });
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const searchParams = useSearchParams();
@@ -29,11 +30,12 @@ function LoginContent() {
             });
 
             if (result?.error) {
-                // NextAuth errors can be wrapped in generic messages
-                if (result.error.includes("CredentialsSignin")) {
+                // Map NextAuth error codes to user-friendly messages
+                const errorKey = result.error.toLowerCase();
+                if (errorKey.includes("credentials") || errorKey.includes("configuration")) {
                     setError("Invalid University ID or Password");
                 } else {
-                    setError(result.error || "Authentication failed");
+                    setError("Authentication failed. Please try again.");
                 }
                 setLoading(false);
             } else {
@@ -105,9 +107,12 @@ function LoginContent() {
                             )}
 
                             {error && (
-                                <div className="rounded-xl bg-rose-50 p-3 border border-rose-200 animate-shake flex items-center gap-3">
-                                    <span className="text-xl">⚠️</span>
-                                    <p className="text-xs text-rose-700 font-semibold">{error}</p>
+                                <div className="rounded-xl bg-rose-50 p-4 border border-rose-100 animate-shake flex items-center gap-4 shadow-sm shadow-rose-50/50">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-xl shrink-0">⚠️</div>
+                                    <div>
+                                        <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest leading-none mb-1">Error</p>
+                                        <p className="text-[12px] text-rose-700 font-bold leading-tight">{error}</p>
+                                    </div>
                                 </div>
                             )}
 
@@ -135,9 +140,9 @@ function LoginContent() {
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full border-b-2 border-slate-100 py-3 bg-transparent text-slate-900 placeholder-transparent focus:border-indigo-600 focus:outline-none transition-all duration-300 peer text-base font-medium"
+                                        className="w-full border-b-2 border-slate-100 py-3 bg-transparent text-slate-900 placeholder-transparent focus:border-indigo-600 focus:outline-none transition-all duration-300 peer text-base font-medium pr-10"
                                         placeholder="Password"
                                         value={formData.password}
                                         onChange={handleChange}
@@ -148,6 +153,22 @@ function LoginContent() {
                                     >
                                         Password
                                     </label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-0 top-3 text-slate-300 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825M19.914 11.082C20.841 12.33 21.05 13.924 20.35 15.35M19.914 11.082a9.04 9.04 0 00-1.87-2.673l-4.168 4.168" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
                                     <div className="flex justify-end mt-1">
                                         <button type="button" className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors">Forgot password?</button>
                                     </div>

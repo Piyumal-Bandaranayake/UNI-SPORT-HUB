@@ -43,3 +43,23 @@ export async function POST(req) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+export async function GET() {
+    try {
+        const session = await auth();
+        if (!session || session.user.role !== "STUDENT") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        await dbConnect();
+
+        const requests = await ExerciseSchedule.find({ studentId: session.user.id })
+            .populate("coachId", "name")
+            .sort({ createdAt: -1 });
+
+        return NextResponse.json(requests);
+    } catch (error) {
+        console.error("Error fetching exercise requests:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}

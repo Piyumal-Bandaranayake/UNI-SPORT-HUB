@@ -18,7 +18,7 @@ export async function GET() {
         let sportNames = [];
 
         if (role === "COACH") {
-            const coach = await Coach.findOne({ email: universityId }, "assignedSports").lean();
+            const coach = await Coach.findOne({ email: session.user.universityEmail }, "assignedSports").lean();
             if (coach) {
                 sportNames = coach.assignedSports || [];
             }

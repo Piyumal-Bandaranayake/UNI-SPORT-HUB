@@ -22,7 +22,9 @@ export default function CoachDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isAchievementModalOpen, setIsAchievementModalOpen] = useState(false);
     const [formData, setFormData] = useState({ sportName: '', date: '', time: '', location: '', activity: '' });
+    const [scheduleErrors, setScheduleErrors] = useState({});
     const [achievementData, setAchievementData] = useState({ title: '', description: '', date: '', image: '', sportName: '' });
+    const [achievementErrors, setAchievementErrors] = useState({});
     const [achievementStatus, setAchievementStatus] = useState({ error: '', success: '' });
     const [isPending, startTransition] = useTransition();
     const [uploading, setUploading] = useState(false);
@@ -78,8 +80,66 @@ export default function CoachDashboard() {
         fetchAchievements();
     }, []);
 
+    const validateField = (name, value) => {
+        let error = "";
+        if (!value && name !== 'sportName') {
+            error = "Field is required";
+        } else if (name === 'date') {
+            const selectedDate = new Date(value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                error = "Past dates not allowed";
+            }
+        } else if (name === 'location' && value.length < 3) {
+            error = "Location too short";
+        } else if (name === 'activity' && value.length < 5) {
+            error = "Activity detail too short";
+        }
+        setScheduleErrors(prev => ({ ...prev, [name]: error }));
+        return error;
+    };
+
+    const validateAchievementField = (name, value) => {
+        let error = "";
+        if (!value) {
+            error = "This field is required";
+        } else if (name === 'title' && value.length < 5) {
+            error = "Title must be at least 5 characters";
+        } else if (name === 'description' && value.length < 10) {
+            error = "Description must be at least 10 characters";
+        }
+        setAchievementErrors(prev => ({ ...prev, [name]: error }));
+        return error;
+    };
+
+    const handleAchievementInputChange = (e) => {
+        const { name, value } = e.target;
+        setAchievementData(prev => ({ ...prev, [name]: value }));
+        validateAchievementField(name, value);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        validateField(name, value);
+    };
+
     const handleCreateSchedule = async (e) => {
         e.preventDefault();
+        
+        // Final validation check
+        const errors = {};
+        Object.keys(formData).forEach(key => {
+            const error = validateField(key, formData[key]);
+            if (error) errors[key] = error;
+        });
+
+        if (Object.values(errors).some(error => error !== "")) {
+            setScheduleErrors(prev => ({ ...prev, submit: "Please fix all highlighted errors." }));
+            return;
+        }
+
         try {
             const res = await fetch("/api/user/schedules", {
                 method: "POST",
@@ -91,10 +151,15 @@ export default function CoachDashboard() {
                 setSchedules([{ id: scheduleId, ...formData }, ...schedules]);
                 setIsModalOpen(false);
                 setFormData({ sportName: '', date: '', time: '', location: '', activity: '' });
+                setScheduleErrors({});
                 setActiveTab("Schedule");
+            } else {
+                const data = await res.json();
+                setScheduleErrors({ submit: data.error || "Failed to create schedule." });
             }
         } catch (err) {
             console.error("Error creating schedule:", err);
+            setScheduleErrors({ submit: "A technical error occurred." });
         }
     };
 
@@ -110,14 +175,15 @@ export default function CoachDashboard() {
         }
     };
 
-    const handleUpdateRequestStatus = async (id, status) => {
+    const handleUpdateRequestStatus = async (id, status, type) => {
         try {
-            const res = await fetch(`/api/user/exercise-requests/${id}`, {
+            const res = await fetch(`/api/user/exercise-requests`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status })
+                body: JSON.stringify({ id, status, type })
             });
             if (res.ok) {
+                // If it was accepted/rejected, we remove from pending or update local state
                 setExerciseRequests(exerciseRequests.filter(req => req.id !== id));
             }
         } catch (err) {
@@ -145,9 +211,21 @@ export default function CoachDashboard() {
         e.preventDefault();
         setAchievementStatus({ error: '', success: '' });
         
-        // Basic Client Validation
-        if (!achievementData.title || !achievementData.description || !achievementData.date || !achievementData.image || !achievementData.sportName) {
-            setAchievementStatus({ ...achievementStatus, error: "Please provide all details including a team or trophy photo." });
+        // Final validation check
+        const errors = {};
+        Object.keys(achievementData).forEach(key => {
+            const error = validateAchievementField(key, achievementData[key]);
+            if (error) errors[key] = error;
+        });
+
+        if (Object.values(errors).some(error => error !== "")) {
+            setAchievementStatus({ ...achievementStatus, error: "Please fix the errors before submitting." });
+            return;
+        }
+
+        if (!achievementData.image) {
+            setAchievementErrors(prev => ({ ...prev, image: "Please upload an image" }));
+            setAchievementStatus({ ...achievementStatus, error: "Please upload an image." });
             return;
         }
 
@@ -360,6 +438,7 @@ export default function CoachDashboard() {
                                             <button 
                                                 onClick={() => {
                                                     setFormData({ ...formData, sportName: sport.name });
+                                                    setScheduleErrors({});
                                                     setIsModalOpen(true);
                                                 }}
                                                 className="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition-all">
@@ -449,13 +528,13 @@ export default function CoachDashboard() {
                                             </div>
                                             <div className="flex gap-3">
                                                 <button 
-                                                    onClick={() => handleUpdateRequestStatus(req.id, "ACCEPTED")}
+                                                    onClick={() => handleUpdateRequestStatus(req.id, "APPROVED", req.type)}
                                                     className="flex-1 lg:flex-none px-8 py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-gray-200"
                                                 >
                                                     Approve
                                                 </button>
                                                 <button 
-                                                    onClick={() => handleUpdateRequestStatus(req.id, "REJECTED")}
+                                                    onClick={() => handleUpdateRequestStatus(req.id, "REJECTED", req.type)}
                                                     className="flex-1 lg:flex-none px-8 py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
                                                 >
                                                     Decline
@@ -519,60 +598,96 @@ export default function CoachDashboard() {
                 {/* Modal */}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl m-4 border border-gray-100">
-                            <h3 className="text-2xl font-black text-gray-900 mb-6">Create Schedule</h3>
+                        <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl m-4 border border-gray-100 animate-in fade-in zoom-in duration-300">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-black text-gray-900">Create Schedule</h3>
+                                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-900 transition-colors">✕</button>
+                            </div>
+
+                            {scheduleErrors.submit && (
+                                <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-[11px] font-black uppercase tracking-widest animate-in slide-in-from-top-2">
+                                    <span>⚠️</span> {scheduleErrors.submit}
+                                </div>
+                            )}
+
                             <form onSubmit={handleCreateSchedule} className="space-y-4">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Sport</label>
                                     <input 
                                         type="text"
+                                        name="sportName"
                                         readOnly
                                         value={formData.sportName}
                                         className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-500 outline-none cursor-not-allowed"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Date</label>
+                                    <div className="flex flex-col">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
+                                            {scheduleErrors.date && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.date}</span>}
+                                        </div>
                                         <input 
                                             type="date" 
                                             required
+                                            name="date"
+                                            min={new Date().toISOString().split('T')[0]}
                                             value={formData.date}
-                                            onChange={(e) => setFormData({...formData, date: e.target.value})}
-                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                            onChange={handleInputChange}
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                                scheduleErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`} 
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Time</label>
+                                    <div className="flex flex-col">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</label>
+                                            {scheduleErrors.time && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.time}</span>}
+                                        </div>
                                         <input 
                                             type="time" 
                                             required
+                                            name="time"
                                             value={formData.time}
-                                            onChange={(e) => setFormData({...formData, time: e.target.value})}
-                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                            onChange={handleInputChange}
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                                scheduleErrors.time ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`} 
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Location</label>
+                                <div className="flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</label>
+                                        {scheduleErrors.location && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.location}</span>}
+                                    </div>
                                     <input 
                                         type="text" 
                                         required
+                                        name="location"
                                         placeholder="e.g. Main Stadium"
                                         value={formData.location}
-                                        onChange={(e) => setFormData({...formData, location: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        onChange={handleInputChange}
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                            scheduleErrors.location ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                        }`} 
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Activity</label>
+                                <div className="flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Activity</label>
+                                        {scheduleErrors.activity && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.activity}</span>}
+                                    </div>
                                     <input 
                                         type="text" 
                                         required
+                                        name="activity"
                                         placeholder="e.g. Endurance Training"
                                         value={formData.activity}
-                                        onChange={(e) => setFormData({...formData, activity: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        onChange={handleInputChange}
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                            scheduleErrors.activity ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                        }`} 
                                     />
                                 </div>
                                 <div className="flex gap-4 pt-4 mt-8 border-t border-gray-50">
@@ -612,53 +727,82 @@ export default function CoachDashboard() {
 
                             <form onSubmit={handleCreateAchievement} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Sport Department</label>
+                                    <div className="flex flex-col">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sport Department</label>
+                                            {achievementErrors.sportName && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.sportName}</span>}
+                                        </div>
                                         <select 
                                             required
+                                            name="sportName"
                                             value={achievementData.sportName}
-                                            onChange={(e) => setAchievementData({...achievementData, sportName: e.target.value})}
-                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50"
+                                            onChange={handleAchievementInputChange}
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                                achievementErrors.sportName ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`}
                                         >
                                             <option value="">Select Sport</option>
                                             {sports.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Date Achieved</label>
+                                    <div className="flex flex-col">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date Achieved</label>
+                                            {achievementErrors.date && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.date}</span>}
+                                        </div>
                                         <input 
                                             type="date" required
+                                            name="date"
                                             value={achievementData.date}
-                                            onChange={(e) => setAchievementData({...achievementData, date: e.target.value})}
-                                            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                            onChange={handleAchievementInputChange}
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                                achievementErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`} 
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Achievement Title</label>
+                                <div className="flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Achievement Title</label>
+                                        {achievementErrors.title && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.title}</span>}
+                                    </div>
                                     <input 
                                         type="text" required
+                                        name="title"
                                         placeholder="e.g. SLUG 2026 Gold Medal"
                                         value={achievementData.title}
-                                        onChange={(e) => setAchievementData({...achievementData, title: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50" 
+                                        onChange={handleAchievementInputChange}
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
+                                            achievementErrors.title ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                        }`} 
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Short Description</label>
+                                <div className="flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Short Description</label>
+                                        {achievementErrors.description && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.description}</span>}
+                                    </div>
                                     <textarea 
                                         required rows={3}
+                                        name="description"
                                         placeholder="Tell us more about this win..."
                                         value={achievementData.description}
-                                        onChange={(e) => setAchievementData({...achievementData, description: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-emerald-50 resize-none" 
+                                        onChange={handleAchievementInputChange}
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all resize-none ${
+                                            achievementErrors.description ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                        }`} 
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Trophy / Team Photo</label>
-                                    <div className="relative h-32 w-full bg-gray-50 rounded-[20px] border-2 border-dashed border-gray-100 flex items-center justify-center overflow-hidden hover:border-emerald-200 transition-all">
+                                <div className="flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trophy / Team Photo</label>
+                                        {achievementErrors.image && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.image}</span>}
+                                    </div>
+                                    <div className={`relative h-32 w-full bg-gray-50 rounded-[20px] border-2 border-dashed flex items-center justify-center overflow-hidden hover:border-emerald-200 transition-all ${
+                                        achievementErrors.image ? "border-rose-200 ring-2 ring-rose-500/20 bg-rose-50/10" : "border-gray-100"
+                                    }`}>
                                         {achievementData.image ? (
-                                            <img src={achievementData.image} className="w-full h-full object-cover" />
+                                            <img src={achievementData.image} className="w-full h-full object-cover" alt="Preview" />
                                         ) : (
                                             <div className="text-center">
                                                 <div className="text-2xl">📸</div>
@@ -671,7 +815,10 @@ export default function CoachDashboard() {
                                                 const file = e.target.files[0];
                                                 if (file) {
                                                     const reader = new FileReader();
-                                                    reader.onloadend = () => setAchievementData({...achievementData, image: reader.result});
+                                                    reader.onloadend = () => {
+                                                        setAchievementData({...achievementData, image: reader.result});
+                                                        setAchievementErrors(prev => ({ ...prev, image: "" }));
+                                                    };
                                                     reader.readAsDataURL(file);
                                                 }
                                             }}
