@@ -13,16 +13,17 @@ export default async function Home() {
   const session = await auth();
 
   await dbConnect();
-  const sports = await Sport.find({ status: "ACTIVE" }).lean();
-  const events = await Event.find({ status: { $in: ["UPCOMING", "LIVE"] } })
+  const sports = JSON.parse(JSON.stringify(await Sport.find({ status: "ACTIVE" }).lean()));
+  const events = JSON.parse(JSON.stringify(await Event.find({ status: { $in: ["UPCOMING", "LIVE"] } })
     .sort({ date: 1 })
     .limit(4)
-    .lean();
+    .lean()));
 
-  const achievements = await Achievement.find({})
+  const achievements = JSON.parse(JSON.stringify(await Achievement.find({})
     .sort({ createdAt: -1 })
     .limit(3)
-    .lean();
+    .lean()));
+
 
   console.log(`[Home] Fetched ${sports.length} sports, ${events.length} events, and ${achievements.length} achievements.`);
 

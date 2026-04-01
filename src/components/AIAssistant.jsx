@@ -50,7 +50,7 @@ const AIAssistant = () => {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col animate-appear duration-300">
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between text-white">
             <div className="flex items-center gap-3">
@@ -155,17 +155,6 @@ const AIAssistant = () => {
         )}
       </button>
 
-      <style jsx>{`
-        .animate-in {
-          animation: appear 0.3s ease-out;
-        }
-        @keyframes appear {
-          from { opacity: 0; transform: translateY(20px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .delay-100 { animation-delay: 100ms; }
-        .delay-200 { animation-delay: 200ms; }
-      `}</style>
     </div>
   );
 };
