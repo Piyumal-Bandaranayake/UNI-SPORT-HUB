@@ -24,13 +24,13 @@ export async function PATCH(req) {
             user = await SubAdmin.findOneAndUpdate(
                 { email: { $regex: new RegExp("^" + email.trim() + "$", "i") } },
                 { managedSports: sports },
-                { new: true }
+                { returnDocument: "after" }
             );
         } else if (type === "COACH") {
             user = await Coach.findOneAndUpdate(
                 { email: { $regex: new RegExp("^" + email.trim() + "$", "i") } },
                 { assignedSports: sports },
-                { new: true }
+                { returnDocument: "after" }
             );
         } else {
             return NextResponse.json({ error: "Invalid user type." }, { status: 400 });

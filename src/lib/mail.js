@@ -121,3 +121,71 @@ export async function sendStudentWelcome(to, name, universityId) {
         return { success: false };
     }
 }
+
+/**
+ * Sends a notification email when an account is deactivated.
+ */
+export async function sendAccountStatusEmail(to, name, role, status) {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || "smtp.gmail.com",
+            port: parseInt(process.env.SMTP_PORT || "587"),
+            secure: process.env.SMTP_SECURE === "true",
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
+
+        const isBlocked = status === "BLOCKED";
+        const subject = isBlocked 
+            ? `⚠️ Account Security Alert - UniSportHub` 
+            : `✅ Account Reactivated - UniSportHub`;
+
+        const html = `
+            <div style="font-family: sans-serif; background-color: #f0f2f5; padding: 40px; border-radius: 20px;">
+                <div style="max-width: 500px; margin: auto; background: white; padding: 40px; border-radius: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <div style="margin-bottom: 24px;">
+                        <span style="font-size: 24px; font-weight: 900; color: #111827;">Uni<span style="color: #4f46e5;">Sport</span>Hub</span>
+                    </div>
+                    
+                    <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 16px;">Hello ${name},</h1>
+                    <p style="color: #475569; line-height: 1.6;">
+                        ${isBlocked 
+                            ? `Your <strong>${role}</strong> account status has been changed to <strong>DEACTIVATED (BLOCKED)</strong> by the administration.` 
+                            : `Your <strong>${role}</strong> account has been <strong>REACTIVATED</strong>. You can now login to your dashboard.`}
+                    </p>
+                    
+                    <div style="background-color: ${isBlocked ? '#fff1f2' : '#f0fdf4'}; border: 1px solid ${isBlocked ? '#fecdd3' : '#bbf7d0'}; padding: 24px; border-radius: 16px; margin: 32px 0;">
+                        <p style="margin: 0; color: ${isBlocked ? '#e11d48' : '#16a34a'}; font-weight: 700; font-size: 14px; text-transform: uppercase;">
+                            Current Status: ${status}
+                        </p>
+                    </div>
+                    
+                    ${!isBlocked ? `
+                    <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login" 
+                       style="display: block; background-color: #4f46e5; color: white; text-align: center; padding: 18px; border-radius: 16px; text-decoration: none; font-weight: 800; text-transform: uppercase; font-size: 14px; letter-spacing: 0.05em;">
+                       Access Dashboard
+                    </a>
+                    ` : `
+                    <p style="color: #64748b; font-size: 13px;">If you believe this is a mistake, please contact the university sports administration department immediately.</p>
+                    `}
+                    
+                    <p style="margin-top: 32px; color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.5;">This is an automated security message from UniSportHub Administration.</p>
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: `"UniSportHub Administration" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Account status email failed:", error);
+        return { success: false };
+    }
+}

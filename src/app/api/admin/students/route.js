@@ -5,6 +5,7 @@ import SubAdmin from "@/models/SubAdmin";
 import Coach from "@/models/Coach";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { sendAccountStatusEmail } from "@/lib/mail";
 
 export async function GET() {
     try {
@@ -57,13 +58,24 @@ export async function PATCH(req) {
             }
         }
 
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (universityId) updateData.universityId = universityId;
+        if (universityEmail) updateData.universityEmail = universityEmail;
+        if (status) updateData.status = status;
+
         const updated = await Student.findByIdAndUpdate(
             id,
-            { name, universityId, universityEmail, status },
-            { new: true }
+            updateData,
+            { returnDocument: "after" }
         );
 
         if (!updated) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+
+        // Email notification for status change
+        if (status) {
+            await sendAccountStatusEmail(updated.universityEmail, updated.name, "STUDENT", status);
+        }
 
         return NextResponse.json({ success: "Student updated successfully", data: updated });
     } catch (err) {

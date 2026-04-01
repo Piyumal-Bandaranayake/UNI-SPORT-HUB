@@ -6,7 +6,7 @@ import Student from "@/models/Student";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { sendLoginDetails } from "@/lib/mail";
+import { sendLoginDetails, sendAccountStatusEmail } from "@/lib/mail";
 
 export async function POST(req) {
     try {
@@ -127,5 +127,36 @@ export async function DELETE(req) {
     } catch (err) {
         console.error("deleteCoach API error:", err);
         return NextResponse.json({ error: "Failed to delete coach" }, { status: 500 });
+    }
+}
+
+export async function PATCH(req) {
+    try {
+        const session = await auth();
+        if (!session || session.user.role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id, status } = await req.json();
+        if (!id) return NextResponse.json({ error: "Coach ID is required" }, { status: 400 });
+
+        await dbConnect();
+        const updated = await Coach.findByIdAndUpdate(
+            id,
+            { status },
+            { returnDocument: "after" }
+        );
+
+        if (!updated) return NextResponse.json({ error: "Coach not found" }, { status: 404 });
+
+        // Email notification
+        if (status) {
+            await sendAccountStatusEmail(updated.email, updated.name, "COACH", status);
+        }
+
+        return NextResponse.json({ success: "Coach status updated", data: updated });
+    } catch (err) {
+        console.error("updateCoach API error:", err);
+        return NextResponse.json({ error: "Failed to update coach status" }, { status: 500 });
     }
 }

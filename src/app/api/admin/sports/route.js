@@ -107,7 +107,7 @@ export async function PATCH(req) {
             updateData.name = trimmedName;
         }
 
-        const updated = await Sport.findByIdAndUpdate(id, updateData, { new: true });
+        const updated = await Sport.findByIdAndUpdate(id, updateData, { returnDocument: "after" });
 
         if (!updated) {
             return NextResponse.json({ error: "Sport not found" }, { status: 404 });
