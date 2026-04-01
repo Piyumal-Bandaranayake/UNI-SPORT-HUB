@@ -69,7 +69,7 @@ export async function PATCH(req) {
         const updatedEvent = await Event.findByIdAndUpdate(
             id,
             updateData,
-            { new: true }
+            { returnDocument: "after" }
         ).populate("participants", "name universityId");
 
         if (!updatedEvent) return NextResponse.json({ error: "Event not found" }, { status: 404 });

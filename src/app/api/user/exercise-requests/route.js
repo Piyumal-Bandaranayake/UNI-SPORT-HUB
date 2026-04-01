@@ -72,9 +72,9 @@ export async function PATCH(req) {
         
         let result;
         if (type === "SESSION") {
-            result = await ExerciseSchedule.findByIdAndUpdate(id, { status }, { new: true });
+            result = await ExerciseSchedule.findByIdAndUpdate(id, { status }, { returnDocument: "after" });
         } else if (type === "PLAN") {
-            result = await PlanRequest.findByIdAndUpdate(id, { status }, { new: true });
+            result = await PlanRequest.findByIdAndUpdate(id, { status }, { returnDocument: "after" });
         }
 
         if (!result) return NextResponse.json({ error: "Request not found" }, { status: 404 });

@@ -71,7 +71,7 @@ export async function PATCH(req) {
         const updatedItem = await Equipment.findByIdAndUpdate(
             id,
             { ...updates, lastUpdatedBy: session.user.universityId },
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!updatedItem) return NextResponse.json({ error: "Item not found" }, { status: 404 });
