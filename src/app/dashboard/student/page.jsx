@@ -27,6 +27,8 @@ export default function StudentDashboard() {
     const [coaches, setCoaches] = useState([]);
     const [trainingSchedules, setTrainingSchedules] = useState([]);
     const [exerciseRequests, setExerciseRequests] = useState([]);
+    const [notifications, setNotifications] = useState([]);
+    const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,6 +61,18 @@ export default function StudentDashboard() {
         return error === "";
     };
 
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch("/api/student/notifications");
+            if (res.ok) {
+                const data = await res.json();
+                setNotifications(data);
+            }
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
+    };
+
     const validateJoinField = (name, value) => {
         let error = "";
         if (name === "details") {
@@ -78,14 +92,15 @@ export default function StudentDashboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes] = await Promise.all([
+                const responses = await Promise.all([
                     fetch("/api/sports"),
                     fetch("/api/student/me"),
                     fetch("/api/student/coaches"),
                     fetch("/api/student/bookings"),
                     fetch("/api/student/training-schedules"),
-                    fetch("/api/student/schedule-exercise")
+                    fetch("/api/student/notifications")
                 ]);
+                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes] = responses;
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
                     setSports(data);
@@ -105,6 +120,11 @@ export default function StudentDashboard() {
                 if (schedulesRes.ok) {
                     const schedulesData = await schedulesRes.json();
                     setTrainingSchedules(schedulesData || []);
+                }
+                const notificationsRes = responses[5];
+                if (notificationsRes && notificationsRes.ok) {
+                    const notifyData = await notificationsRes.json();
+                    setNotifications(notifyData);
                 }
                 const exerciseRequestsRes = await fetch("/api/student/schedule-exercise");
                 if (exerciseRequestsRes.ok) {
@@ -344,10 +364,44 @@ export default function StudentDashboard() {
 
                     <div className="flex items-center gap-6">
                         <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
-                        <button className="text-gray-400 hover:text-gray-900 transition-colors relative">
+                        <button 
+                            onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
+                            className="text-gray-400 hover:text-gray-900 transition-colors relative"
+                        >
                             🔔
-                            <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                            {notifications.length > 0 && (
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                            )}
                         </button>
+                        
+                        {/* Notification Panel */}
+                        {isNotificationPanelOpen && (
+                            <div className="absolute top-20 right-0 w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Notifications</h4>
+                                    <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full uppercase">{notifications.length} New</span>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto">
+                                    {notifications.length === 0 ? (
+                                        <div className="p-10 text-center">
+                                            <div className="text-2xl mb-2">🎈</div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No new updates</p>
+                                        </div>
+                                    ) : (
+                                        notifications.map((notif) => (
+                                            <div key={notif.id} className="p-5 border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">{notif.type.replace('_', ' ')}</span>
+                                                    <span className="text-[9px] font-bold text-gray-300 uppercase">{new Date(notif.time).toLocaleDateString()}</span>
+                                                </div>
+                                                <h5 className="text-[11px] font-black text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">{notif.title}</h5>
+                                                <p className="text-[10px] text-gray-400 font-medium leading-relaxed italic">"{notif.message}"</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
                             <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center font-black text-indigo-600">
                                 {session?.user?.name?.substring(0, 2).toUpperCase()}
