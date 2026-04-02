@@ -1,7 +1,7 @@
 "use client";
 
 export default function EventCard({ event }) {
-  const { name, date, time, location, type, status, image, description } = event;
+  const { name, date, time, location, type, status, image, description, registrationUrl } = event;
 
   const typeColors = {
     TRAINING: "bg-blue-100 text-blue-600",
@@ -54,9 +54,27 @@ export default function EventCard({ event }) {
           {description || "Join us for this exciting university sports event and show your support!"}
         </p>
 
-        <button className="w-full py-3 rounded-xl bg-gray-50 text-gray-900 text-sm font-bold hover:bg-indigo-600 hover:text-white transition-all">
-          View Details
-        </button>
+        <div className="flex gap-3">
+          {registrationUrl ? (
+            <a 
+              href={registrationUrl} 
+              target="_blank" 
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all text-center flex items-center justify-center shadow-lg shadow-indigo-100 animate-in zoom-in-95 duration-500"
+            >
+              Register Now ↗
+            </a>
+          ) : (
+            <button className="w-full py-3 rounded-xl bg-gray-50 text-gray-900 text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all border border-transparent hover:border-indigo-100 hover:text-indigo-600">
+              Details ↗
+            </button>
+          )}
+        </div>
+        {/* Debug Info (Visible only for identification) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 text-[6px] text-gray-200 overflow-hidden truncate">
+            KEYS: {Object.keys(event).join(", ")} | VAL: {String(registrationUrl)}
+          </div>
+        )}
       </div>
     </div>
   );

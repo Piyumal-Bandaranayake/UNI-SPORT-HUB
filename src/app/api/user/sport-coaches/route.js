@@ -13,22 +13,20 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const sportName = searchParams.get("sportName");
 
-        if (!sportName) {
-            return NextResponse.json({ error: "sportName is required" }, { status: 400 });
-        }
+        if (!sportName) return NextResponse.json({ error: "sportName is required" }, { status: 400 });
 
         await dbConnect();
         
-        // Find coaches where assignedSports array contains the sportName
-        const coaches = await Coach.find({ 
-            assignedSports: { $in: [sportName] } 
-        }, "name universityId status").lean();
+        // Find coaches who have this sport assigned
+        const coaches = await Coach.find({
+            assignedSports: sportName,
+            status: "ACTIVE"
+        }, "name email").lean();
 
         const formatted = coaches.map(c => ({
             id: c._id.toString(),
             name: c.name,
-            universityId: c.universityId,
-            status: c.status
+            email: c.email
         }));
 
         return NextResponse.json(formatted);

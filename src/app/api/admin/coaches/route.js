@@ -3,6 +3,7 @@ import Admin from "@/models/Admin";
 import SubAdmin from "@/models/SubAdmin";
 import Coach from "@/models/Coach";
 import Student from "@/models/Student";
+import Sport from "@/models/Sport";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
@@ -86,14 +87,19 @@ export async function GET() {
         }
 
         await dbConnect();
-        const coaches = await Coach.find({}, "name email status assignedSports createdAt").lean();
+        const [coaches, sports] = await Promise.all([
+            Coach.find({}, "name email status assignedSports createdAt").lean(),
+            Sport.find({}, "name").lean()
+        ]);
+
+        const validSportNames = sports.map(s => s.name);
 
         const formatted = coaches.map((c) => ({
             id: c._id.toString(),
             name: c.name,
             email: c.email,
             status: c.status,
-            assignedSports: c.assignedSports,
+            assignedSports: (c.assignedSports || []).filter(sport => validSportNames.includes(sport)),
             createdAt: c.createdAt ? c.createdAt.toISOString() : new Date().toISOString(),
         }));
 

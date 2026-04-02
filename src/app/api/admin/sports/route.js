@@ -2,6 +2,11 @@ import dbConnect from "@/lib/mongodb";
 import Sport from "@/models/Sport";
 import SubAdmin from "@/models/SubAdmin";
 import Coach from "@/models/Coach";
+import Student from "@/models/Student";
+import Event from "@/models/Event";
+import Schedule from "@/models/Schedule";
+import SportRequest from "@/models/SportRequest";
+import Achievement from "@/models/Achievement";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
@@ -104,6 +109,20 @@ export async function PATCH(req) {
             if (existing) {
                 return NextResponse.json({ error: `The name "${trimmedName}" is already taken by another department.` }, { status: 400 });
             }
+
+            // Sync name across other models if changed
+            const sportToUpdate = await Sport.findById(id);
+            if (sportToUpdate && sportToUpdate.name !== trimmedName) {
+                const oldName = sportToUpdate.name;
+                await Promise.all([
+                    SubAdmin.updateMany({ managedSports: oldName }, { $set: { "managedSports.$": trimmedName } }),
+                    Coach.updateMany({ assignedSports: oldName }, { $set: { "assignedSports.$": trimmedName } }),
+                    Student.updateMany({ approvedSports: oldName }, { $set: { "approvedSports.$": trimmedName } }),
+                    Student.updateMany({ sportRequests: oldName }, { $set: { "sportRequests.$": trimmedName } }),
+                    Schedule.updateMany({ sportName: oldName }, { sportName: trimmedName }),
+                    Achievement.updateMany({ sportName: oldName }, { sportName: trimmedName })
+                ]);
+            }
             updateData.name = trimmedName;
         }
 
@@ -133,15 +152,52 @@ export async function DELETE(req) {
         }
 
         await dbConnect();
-        const deleted = await Sport.findByIdAndDelete(id);
 
-        if (!deleted) {
+        // 1. Find the sport to get name and ID context
+        const sportToDelete = await Sport.findById(id);
+        if (!sportToDelete) {
             return NextResponse.json({ error: "Sport not found" }, { status: 404 });
         }
 
-        return NextResponse.json({ success: "Sport removed successfully" });
+        const sportId = sportToDelete._id;
+        const sportName = sportToDelete.name;
+
+        // 2. Clear String-based assignments (SubAdmins, Coaches, Students, Schedules)
+        await Promise.all([
+            // Remove from Sub-Admins
+            SubAdmin.updateMany(
+                { managedSports: sportName },
+                { $pull: { managedSports: sportName } }
+            ),
+            // Remove from Coaches
+            Coach.updateMany(
+                { assignedSports: sportName },
+                { $pull: { assignedSports: sportName } }
+            ),
+            // Remove from Students
+            Student.updateMany(
+                { $or: [{ approvedSports: sportName }, { sportRequests: sportName }] },
+                { $pull: { approvedSports: sportName, sportRequests: sportName } }
+            ),
+            // Delete Schedules and Achievements linked by Name
+            Schedule.deleteMany({ sportName: sportName }),
+            Achievement.deleteMany({ sportName: sportName })
+        ]);
+
+        // 3. Clear ObjectId-based associations (Events, SportRequests)
+        await Promise.all([
+            Event.deleteMany({ sportId: sportId }),
+            SportRequest.deleteMany({ sportId: sportId })
+        ]);
+
+        // 4. Finally delete the Sport itself
+        await Sport.findByIdAndDelete(id);
+
+        return NextResponse.json({ 
+            success: `Sport "${sportName}" removed successfully. All assignments for Sub-Admins, Coaches, and Students have been cleared, and associated schedules/events have been deleted.` 
+        });
     } catch (err) {
         console.error("deleteSport API error:", err);
-        return NextResponse.json({ error: "Failed to delete sport" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to delete sport and clear assignments" }, { status: 500 });
     }
 }

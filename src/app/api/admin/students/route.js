@@ -3,6 +3,7 @@ import Student from "@/models/Student";
 import Admin from "@/models/Admin";
 import SubAdmin from "@/models/SubAdmin";
 import Coach from "@/models/Coach";
+import Sport from "@/models/Sport";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { sendAccountStatusEmail } from "@/lib/mail";
@@ -15,7 +16,12 @@ export async function GET() {
         }
 
         await dbConnect();
-        const students = await Student.find({}, "-passwordHash").sort({ createdAt: -1 }).lean();
+        const [students, sports] = await Promise.all([
+            Student.find({}, "-passwordHash").sort({ createdAt: -1 }).lean(),
+            Sport.find({}, "name").lean()
+        ]);
+
+        const validSportNames = sports.map(s => s.name);
 
         const formatted = students.map((s) => ({
             id: s._id.toString(),
@@ -23,8 +29,8 @@ export async function GET() {
             universityId: s.universityId,
             universityEmail: s.universityEmail,
             status: s.status,
-            approvedSports: s.approvedSports || [],
-            sportRequests: s.sportRequests || [],
+            approvedSports: (s.approvedSports || []).filter(sport => validSportNames.includes(sport)),
+            sportRequests: (s.sportRequests || []).filter(sport => validSportNames.includes(sport)),
             createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
         }));
 

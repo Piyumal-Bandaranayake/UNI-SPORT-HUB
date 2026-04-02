@@ -1,5 +1,9 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+
+class BlockedAccountError extends CredentialsSignin {
+    code = "account_blocked";
+}
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import Admin from "@/models/Admin";
@@ -64,7 +68,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
 
                 if (userFound.status === "BLOCKED") {
-                    throw new Error("User account is blocked");
+                    throw new BlockedAccountError();
                 }
 
                 const isPasswordCorrect = await bcrypt.compare(password, userFound.passwordHash);

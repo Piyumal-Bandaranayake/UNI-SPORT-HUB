@@ -32,7 +32,9 @@ function LoginContent() {
             if (result?.error) {
                 // Map NextAuth error codes to user-friendly messages
                 const errorKey = result.error.toLowerCase();
-                if (errorKey.includes("credentials") || errorKey.includes("configuration")) {
+                if (errorKey.includes("account_blocked")) {
+                    setError("Your account has been deactivated. Please contact university administration.");
+                } else if (errorKey.includes("credentials") || errorKey.includes("configuration")) {
                     setError("Invalid University ID or Password");
                 } else {
                     setError("Authentication failed. Please try again.");

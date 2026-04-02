@@ -43,8 +43,15 @@ export default function SportManagementDashboard() {
     const [updateStatus, setUpdateStatus] = useState({ loading: false, uploadLoading: false, error: "", success: "" });
 
     const [newUserErrors, setUserErrors] = useState({});
-    const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
+    const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "", registrationUrl: "" });
+    const [editingEvent, setEditingEvent] = useState(null);
     const [eventErrors, setEventErrors] = useState({});
+    const [selectedCerts, setSelectedCerts] = useState([]);
+    const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+    const [newItem, setNewItem] = useState({ name: "", category: "", quantity: 0, condition: "GOOD", image: "" });
+    const [customItemName, setCustomItemName] = useState("");
+    const [equipmentErrors, setEquipmentErrors] = useState({});
+    const [coaches, setCoaches] = useState([]);
 
     const validateEventField = (name, value) => {
         let error = "";
@@ -93,6 +100,7 @@ export default function SportManagementDashboard() {
                         fetchInventory(foundSport.id);
                         fetchMembers(foundSport.name, foundSport.id);
                         fetchEvents(foundSport.id);
+                        fetchCoaches(foundSport.name);
                     }
                 }
             } catch (err) {
@@ -135,6 +143,18 @@ export default function SportManagementDashboard() {
             console.error("Failed to fetch members:", err);
         } finally {
             setLoadingMembers(false);
+        }
+    };
+
+    const fetchCoaches = async (sportName) => {
+        try {
+            const res = await fetch(`/api/user/sport-coaches?sportName=${encodeURIComponent(sportName)}`);
+            if (res.ok) {
+                const data = await res.json();
+                setCoaches(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch coaches:", err);
         }
     };
 
@@ -326,29 +346,34 @@ export default function SportManagementDashboard() {
         try {
             let imageUrl = newEvent.image;
             
-            // If image is a base64 string, upload it to Cloudinary first
             if (imageUrl && imageUrl.startsWith("data:image")) {
                 imageUrl = await uploadToCloudinary(imageUrl, `events/${sport.name}`);
             }
 
+            const method = editingEvent ? "PATCH" : "POST";
+            const payload = editingEvent 
+                ? { ...newEvent, image: imageUrl, id: editingEvent._id } 
+                : { ...newEvent, image: imageUrl, sportId: sport.id };
+
             const res = await fetch("/api/user/sport-events", {
-                method: "POST",
+                method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...newEvent, image: imageUrl, sportId: sport.id }),
+                body: JSON.stringify(payload),
             });
             
             if (res.ok) {
                 fetchEvents(sport.id);
                 setShowAddEventModal(false);
-                setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "" });
-                setUpdateStatus({ ...updateStatus, uploadLoading: false, success: "Event published successfully!" });
+                setEditingEvent(null);
+                setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "", registrationUrl: "" });
+                setUpdateStatus({ ...updateStatus, uploadLoading: false, success: editingEvent ? "Event updated successfully!" : "Event published successfully!" });
             } else {
                 const errorData = await res.json();
-                setUpdateStatus({ ...updateStatus, uploadLoading: false, error: errorData.error || "Failed to create event." });
+                setUpdateStatus({ ...updateStatus, uploadLoading: false, error: errorData.error || "Failed to save event." });
             }
         } catch (err) {
-            console.error("Failed to add event:", err);
-            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Image upload failed. Please try again." });
+            console.error("Failed to save event:", err);
+            setUpdateStatus({ ...updateStatus, uploadLoading: false, error: "Operation failed. Please check your connection." });
         }
     };
 
@@ -546,9 +571,11 @@ export default function SportManagementDashboard() {
                 <div className="space-y-10">
                     {activeTab === "Overview" && (
                         <>
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                                 <StatCard label="Active Roster" value={roster.length} color="text-sky-700" bg="bg-[#F0F9FF]" icon="👥" subText="Approved members" />
-                                <StatCard label="Upcoming Events" value={events.filter(e => e.status === "UPCOMING").length} color="text-amber-700" bg="bg-[#FFFBEB]" icon="📅" subText="Next 30 days" />
+                                <StatCard label="Pending Requests" value={memberRequests.length} color="text-amber-700" bg="bg-[#FFFBEB]" icon="⏳" subText="Needs review" />
+                                <StatCard label="Upcoming Events" value={events.filter(e => e.status === "UPCOMING").length} color="text-emerald-700" bg="bg-[#F0FDF4]" icon="📅" subText="Next 30 days" />
+                                <StatCard label="Gear Inventory" value={inventory.reduce((sum, item) => sum + (item.quantity || 0), 0)} color="text-indigo-700" bg="bg-[#EEF2FF]" icon="🏸" subText="Units in stock" />
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
@@ -558,21 +585,39 @@ export default function SportManagementDashboard() {
                                         <button className="text-xs text-sky-600 font-black uppercase hover:underline">View All</button>
                                     </h3>
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-4 py-2">
-                                            <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                                            <p className="text-sm text-gray-500 font-medium flex-1">New join request from <span className="text-gray-900 font-bold">John Doe</span></p>
-                                            <span className="text-[10px] text-gray-300 font-black uppercase">2m ago</span>
-                                        </div>
-                                        <div className="flex items-center gap-4 py-2 border-t border-gray-50">
-                                            <div className="w-2 h-2 rounded-full bg-sky-500"></div>
-                                            <p className="text-sm text-gray-500 font-medium flex-1">Training session updated for <span className="text-gray-900 font-bold">Tuesday</span></p>
-                                            <span className="text-[10px] text-gray-300 font-black uppercase">1h ago</span>
-                                        </div>
-                                        <div className="flex items-center gap-4 py-2 border-t border-gray-50">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                            <p className="text-sm text-gray-500 font-medium flex-1">New equipment added to <span className="text-gray-900 font-bold">Inventory</span></p>
-                                            <span className="text-[10px] text-gray-300 font-black uppercase">3h ago</span>
-                                        </div>
+                                        {[
+                                            ...memberRequests.map(m => ({ 
+                                                id: m.requestId || m.id, 
+                                                type: "REQUEST", 
+                                                text: <>New join request from <span className="text-gray-900 font-bold">{m.name}</span></>, 
+                                                time: m.createdAt || new Date(), 
+                                                color: "bg-amber-400" 
+                                            })),
+                                            ...events.slice(0, 3).map(e => ({ 
+                                                id: e._id, 
+                                                type: "EVENT", 
+                                                text: <>{e.type.charAt(0) + e.type.slice(1).toLowerCase()} session scheduled for <span className="text-gray-900 font-bold">{e.name}</span></>, 
+                                                time: e.createdAt || new Date(), 
+                                                color: "bg-sky-500" 
+                                            }))
+                                        ].sort((a,b) => new Date(b.time) - new Date(a.time)).slice(0, 5).map((activity) => (
+                                            <div key={activity.id} className="flex items-center gap-4 py-2 border-t first:border-t-0 border-gray-50 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                <div className={`w-2 h-2 rounded-full ${activity.color} shrink-0`}></div>
+                                                <p className="text-sm text-gray-500 font-medium flex-1 truncate">{activity.text}</p>
+                                                <span className="text-[10px] text-gray-300 font-black uppercase shrink-0 whitespace-nowrap">
+                                                    {(() => {
+                                                        const diff = Math.floor((new Date() - new Date(activity.time)) / 60000); // in minutes
+                                                        if (diff < 1) return "Just now";
+                                                        if (diff < 60) return `${diff}m ago`;
+                                                        if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+                                                        return `${Math.floor(diff/1440)}d ago`;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {(memberRequests.length === 0 && events.length === 0) && (
+                                            <div className="py-10 text-center opacity-40 italic text-sm">No recent activity detected.</div>
+                                        )}
                                     </div>
                                 </section>
 
@@ -581,27 +626,53 @@ export default function SportManagementDashboard() {
                                         Upcoming Sessions
                                         <button className="text-xs text-sky-600 font-black uppercase hover:underline">Full Calendar</button>
                                     </h3>
-                                    <div className="space-y-4">
-                                        <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100/50">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h4 className="font-black text-gray-900 text-sm">Main Practice Session</h4>
-                                                <span className="text-[10px] font-black bg-white px-3 py-1 rounded-full text-sky-600 border border-sky-100">Today</span>
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {events.filter(e => e.status === "UPCOMING").slice(0, 5).map((event) => {
+                                            const eventDate = new Date(event.date);
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            const isToday = eventDate.getTime() === today.getTime();
+                                            
+                                            return (
+                                                <div key={event._id} className="p-5 bg-sky-50/30 rounded-[24px] border border-sky-100/50 hover:border-sky-300 transition-all group animate-in zoom-in-95 duration-300">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-black text-gray-900 text-sm group-hover:text-sky-700 transition-colors">{event.name}</h4>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="text-[9px] font-black bg-sky-100 text-sky-600 px-2 py-0.5 rounded-md uppercase tracking-tight">{event.type}</span>
+                                                                {coaches.length > 0 && (
+                                                                    <span className="text-[9px] font-bold text-gray-400">by {coaches[0].name}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm ${isToday ? "bg-amber-400 text-white" : "bg-white text-gray-400 border border-gray-100"}`}>
+                                                            {isToday ? "Today" : event.date}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-4 gap-4">
+                                                        <div className="flex items-center gap-6 text-[10px] text-gray-500 font-black uppercase tracking-tight">
+                                                            <span className="flex items-center gap-1.5"><span className="opacity-50">🕒</span> {event.time}</span>
+                                                            <span className="flex items-center gap-1.5"><span className="opacity-50">📍</span> {event.location}</span>
+                                                        </div>
+                                                        {event.registrationUrl && (
+                                                            <Link 
+                                                                href={event.registrationUrl} 
+                                                                target="_blank" 
+                                                                className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-sky-600 transition-all shadow-lg shadow-gray-100 flex items-center gap-2 group-hover:scale-105"
+                                                            >
+                                                                Register Now ↗
+                                                            </Link>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {events.filter(e => e.status === "UPCOMING").length === 0 && (
+                                            <div className="py-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-gray-50 rounded-[32px] opacity-40">
+                                                <span className="text-3xl mb-4">📅</span>
+                                                <p className="text-xs font-black uppercase tracking-widest">No Sessions Scheduled</p>
                                             </div>
-                                            <div className="flex items-center gap-4 text-[10px] text-gray-400 font-black uppercase tracking-tight">
-                                                <span>📅 4:00 PM</span>
-                                                <span>🏟️ Main Complex</span>
-                                            </div>
-                                        </div>
-                                        <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h4 className="font-black text-gray-900 text-sm">Recovery Session</h4>
-                                                <span className="text-[10px] font-black bg-white px-3 py-1 rounded-full text-gray-400 border border-gray-100">Tomorrow</span>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-[10px] text-gray-400 font-black uppercase tracking-tight">
-                                                <span>📅 2:00 PM</span>
-                                                <span>🏟️ Health Center</span>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </section>
                             </div>
@@ -610,7 +681,7 @@ export default function SportManagementDashboard() {
 
                     {activeTab === "Members" && (
                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 min-h-[500px]">
-                            <div className="flex justify-between items-center mb-10">
+                            <div className="flex justify-between items-start mb-10">
                                 <div>
                                     <h3 className="text-xl font-black text-gray-900 underline decoration-sky-200 underline-offset-8 decoration-4 uppercase tracking-tight">Team Management</h3>
                                     <div className="flex gap-6 mt-6">
@@ -628,6 +699,12 @@ export default function SportManagementDashboard() {
                                         </button>
                                     </div>
                                 </div>
+                                <button 
+                                    onClick={() => {/* Export Logic */}}
+                                    className="bg-white text-gray-900 border-2 border-gray-100 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2"
+                                >
+                                    📥 Export
+                                </button>
                             </div>
 
                             {loadingMembers ? (
@@ -649,6 +726,17 @@ export default function SportManagementDashboard() {
                                                         <div className="mt-2 p-3 bg-white rounded-xl border border-gray-100/50 text-[10px] font-medium text-gray-500 italic">
                                                             " {req.details} "
                                                         </div>
+                                                    )}
+                                                    {req.certificates && req.certificates.length > 0 && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                setSelectedCerts(req.certificates);
+                                                                setIsCertModalOpen(true);
+                                                            }}
+                                                            className="mt-3 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition-all border border-sky-100/50"
+                                                        >
+                                                            📜 View Evidence ({req.certificates.length})
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -735,10 +823,29 @@ export default function SportManagementDashboard() {
                                             )}
 
                                             <div className="p-6 flex flex-col flex-1">
-                                                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all z-10">
+                                                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-all z-10 flex gap-2">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setEditingEvent(event);
+                                                            setNewEvent({
+                                                                name: event.name,
+                                                                date: event.date,
+                                                                time: event.time,
+                                                                location: event.location,
+                                                                type: event.type,
+                                                                description: event.description || "",
+                                                                image: event.image || "",
+                                                                registrationUrl: event.registrationUrl || ""
+                                                            });
+                                                            setShowAddEventModal(true);
+                                                        }}
+                                                        className="w-8 h-8 rounded-full bg-white text-sky-600 border border-sky-100 flex items-center justify-center text-xs shadow-lg hover:bg-sky-50 transition-all"
+                                                    >
+                                                        ✏️
+                                                    </button>
                                                     <button 
                                                         onClick={() => handleDeleteEvent(event._id)}
-                                                        className="w-8 h-8 rounded-full bg-white/90 text-rose-500 border border-rose-100 flex items-center justify-center text-xs shadow-lg"
+                                                        className="w-8 h-8 rounded-full bg-white text-rose-500 border border-rose-100 flex items-center justify-center text-xs shadow-lg hover:bg-rose-50 transition-all"
                                                     >
                                                         🗑️
                                                     </button>
@@ -762,7 +869,18 @@ export default function SportManagementDashboard() {
                                                 </div>
 
                                                 <div className="mt-auto flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
-                                                    <span>🕒 {event.time}</span>
+                                                    <div className="flex flex-col gap-2">
+                                                        <span>🕒 {event.time}</span>
+                                                        {event.registrationUrl && (
+                                                            <Link 
+                                                                href={event.registrationUrl} 
+                                                                target="_blank" 
+                                                                className="text-sky-600 hover:sky-700 font-black flex items-center gap-1"
+                                                            >
+                                                                Register ↗
+                                                            </Link>
+                                                        )}
+                                                    </div>
                                                     <div className="flex items-center gap-4">
                                                         <button 
                                                             onClick={() => {
@@ -857,12 +975,16 @@ export default function SportManagementDashboard() {
                                          <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                                              <div>
                                                  <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                                                     📅 <span className="underline decoration-sky-200 decoration-4 underline-offset-4">New Scheduling</span>
+                                                     📅 <span className="underline decoration-sky-200 decoration-4 underline-offset-4">{editingEvent ? "Update Session" : "New Scheduling"}</span>
                                                  </h3>
-                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Configure Department Event</p>
+                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{editingEvent ? `Modifying ${editingEvent.name}` : "Configure Department Event"}</p>
                                              </div>
                                              <button 
-                                                 onClick={() => setShowAddEventModal(false)} 
+                                                 onClick={() => {
+                                                     setShowAddEventModal(false);
+                                                     setEditingEvent(null);
+                                                     setNewEvent({ name: "", date: "", time: "", location: "", type: "TRAINING", description: "", image: "", registrationUrl: "" });
+                                                 }} 
                                                  className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all border border-gray-100"
                                              >
                                                  ✕
@@ -975,6 +1097,19 @@ export default function SportManagementDashboard() {
                                                      </div>
 
                                                      <div className="col-span-2">
+                                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block flex justify-between">
+                                                             External Registration Link <span className="text-gray-300 italic lowercase normal-case font-bold">(Optional)</span>
+                                                         </label>
+                                                         <input 
+                                                             type="url"
+                                                             value={newEvent.registrationUrl || ""}
+                                                             onChange={(e) => setNewEvent({...newEvent, registrationUrl: e.target.value})}
+                                                             className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:ring-4 ring-sky-50 outline-none transition-all focus:border-sky-200"
+                                                             placeholder="e.g. Google Form or Signup URL"
+                                                         />
+                                                     </div>
+
+                                                     <div className="col-span-2">
                                                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Field Instruction / Overview</label>
                                                          <textarea 
                                                              rows={2}
@@ -1012,7 +1147,7 @@ export default function SportManagementDashboard() {
                                                      disabled={updateStatus.uploadLoading}
                                                      className="w-full bg-sky-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-sky-100 hover:bg-sky-700 transition-all active:scale-[0.98] disabled:opacity-50"
                                                  >
-                                                     {updateStatus.uploadLoading ? "Uploading Media..." : "Publish Department Event"}
+                                                     {updateStatus.uploadLoading ? "Saving Changes..." : editingEvent ? "Synchronize Updates" : "Publish Department Event"}
                                                  </button>
                                              </div>
                                          </form>
@@ -1029,12 +1164,20 @@ export default function SportManagementDashboard() {
                                     <h3 className="text-xl font-black text-gray-900 underline decoration-amber-200 underline-offset-8 decoration-4 uppercase tracking-tight">Gear Inventory</h3>
                                     <p className="text-xs text-gray-400 font-medium mt-4">Manage and track equipment for {sport.name}.</p>
                                 </div>
-                                <button 
-                                    onClick={() => setShowAddModal(true)}
-                                    className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-amber-600 transition-all shadow-lg shadow-gray-100"
-                                >
-                                    + Add Item
-                                </button>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => {/* Export Logic */}}
+                                        className="bg-white text-gray-900 border-2 border-gray-100 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-gray-50 transition-all flex items-center gap-2"
+                                    >
+                                        📥 Export
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowAddModal(true)}
+                                        className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-amber-600 transition-all shadow-lg shadow-gray-100"
+                                    >
+                                        + Add Item
+                                    </button>
+                                </div>
                             </div>
 
                             {loadingInventory ? (
@@ -1328,6 +1471,58 @@ export default function SportManagementDashboard() {
                                     </button>
                                 </div>
                             </form>
+                            {/* Certificate Viewer Modal */}
+                            {isCertModalOpen && (
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+                                    <div className="bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                                        <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+                                            <div>
+                                                <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                                    📜 <span className="underline decoration-sky-200 decoration-4 underline-offset-4">Identity Evidence</span>
+                                                </h3>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Verification Documents</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setIsCertModalOpen(false)} 
+                                                className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-all border border-gray-100"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="p-8 max-h-[70vh] overflow-y-auto bg-gray-50/50">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+                                                {selectedCerts.map((cert, index) => (
+                                                    <div key={index} className="bg-white p-4 rounded-[32px] border border-gray-100 shadow-sm group">
+                                                        <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 relative">
+                                                            <img src={cert} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" alt="Certificate" />
+                                                            <div className="absolute top-4 right-4">
+                                                                <a href={cert} target="_blank" className="w-8 h-8 rounded-full bg-white/90 text-sky-600 flex items-center justify-center shadow-sm hover:bg-sky-600 hover:text-white transition-all text-xs">
+                                                                    ↗
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-4 flex items-center justify-between px-2">
+                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Document #{index+1}</span>
+                                                            <span className="text-[8px] font-bold text-sky-600 bg-sky-50 px-2 py-1 rounded-full uppercase">Verified Path</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-8 bg-white border-t border-gray-50 flex justify-end">
+                                            <button 
+                                                onClick={() => setIsCertModalOpen(false)}
+                                                className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-gray-100 hover:bg-sky-600 transition-all"
+                                            >
+                                                Close Viewer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     )}
                 </div>
