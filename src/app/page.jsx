@@ -19,6 +19,7 @@ export default async function Home() {
     .limit(4)
     .lean()));
 
+
   const achievements = JSON.parse(JSON.stringify(await Achievement.find({})
     .sort({ createdAt: -1 })
     .limit(3)

@@ -37,7 +37,8 @@ export async function GET(req) {
                 email: r.studentId?.universityEmail,
                 details: r.details,
                 certificates: r.certificates,
-                status: "PENDING"
+                status: "PENDING",
+                createdAt: r.createdAt
             })).filter(r => r.id); // Filter out if student not found
 
             // Also find students who have it in their array but no SportRequest record (compatibility)

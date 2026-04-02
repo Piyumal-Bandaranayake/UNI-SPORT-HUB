@@ -8,10 +8,15 @@ const EventSchema = new mongoose.Schema({
     location: { type: String, required: true },
     description: { type: String },
     image: { type: String },
+    registrationUrl: { type: String }, // Optional Google Form link
     type: { type: String, enum: ["TRAINING", "MATCH", "TOURNAMENT", "MEETING"], default: "TRAINING" },
     status: { type: String, enum: ["UPCOMING", "LIVE", "COMPLETED", "CANCELLED"], default: "UPCOMING" },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
     createdBy: { type: String, required: true } // universityId
 }, { timestamps: true });
 
-export default mongoose.models.Event || mongoose.model('Event', EventSchema);
+if (mongoose.models.Event) {
+    delete mongoose.models.Event;
+}
+
+export default mongoose.model('Event', EventSchema);
