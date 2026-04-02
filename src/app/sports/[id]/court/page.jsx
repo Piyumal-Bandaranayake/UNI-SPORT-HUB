@@ -14,7 +14,8 @@ export default async function CourtBookingPage({ params }) {
     await dbConnect();
     const session = await auth();
 
-    if (!session || !session.user || session.user.role !== "student") {
+    const userRole = session?.user?.role?.toUpperCase();
+    if (!session || !session.user || !["STUDENT", "SUB_ADMIN", "ADMIN"].includes(userRole)) {
         redirect("/login");
     }
 
