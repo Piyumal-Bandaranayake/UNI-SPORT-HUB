@@ -12,8 +12,8 @@ const MENU_ITEMS = [
 ];
 
 const APPROVED_MENU_ITEMS = [
-    { id: "Exercise", icon: "💪", label: "Exercise Plan" },
     { id: "Diet", icon: "🥗", label: "Meal Plan" },
+    { id: "Consultations", icon: "🤝", label: "Consultations" },
 ];
 
 const SETTINGS_MENU_ITEM = { id: "Settings", icon: "⚙️", label: "Settings" };
@@ -39,7 +39,8 @@ export default function StudentDashboard() {
     const [exerciseFormData, setExerciseFormData] = useState({
         coachId: "",
         contactNumber: "",
-        freeTime: "",
+        preferredDate: "",
+        preferredTime: "",
         sessionType: ""
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,9 +57,11 @@ export default function StudentDashboard() {
             if (!value) error = "Contact number is required.";
             else if (!/^\+?[0-9\s-]{8,15}$/.test(value)) error = "Invalid phone number format (8-15 digits).";
         }
-        if (name === "freeTime") {
-            if (!value) error = "Free time is required.";
-            else if (value.length < 5) error = "Please provide more details (e.g. Day and Time).";
+        if (name === "preferredDate") {
+            if (!value) error = "Preferred date is required.";
+        }
+        if (name === "preferredTime") {
+            if (!value) error = "Preferred time is required.";
         }
         if (name === "coachId" && !value) error = "Please select a coach.";
         if (name === "sessionType" && !value) error = "Please select a session type.";
@@ -204,28 +207,34 @@ export default function StudentDashboard() {
         let isValid = true;
         isValid = validateExerciseField("contactNumber", exerciseFormData.contactNumber) && isValid;
         isValid = validateExerciseField("coachId", exerciseFormData.coachId) && isValid;
-        isValid = validateExerciseField("freeTime", exerciseFormData.freeTime) && isValid;
+        isValid = validateExerciseField("preferredDate", exerciseFormData.preferredDate) && isValid;
+        isValid = validateExerciseField("preferredTime", exerciseFormData.preferredTime) && isValid;
         isValid = validateExerciseField("sessionType", exerciseFormData.sessionType) && isValid;
 
         if (!isValid) return;
+
+        const payload = {
+            ...exerciseFormData,
+            freeTime: `${exerciseFormData.preferredDate} at ${exerciseFormData.preferredTime}`
+        };
 
         setIsScheduling(true);
         try {
             const res = await fetch("/api/student/schedule-exercise", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(exerciseFormData)
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 alert("Exercise session scheduled successfully! Waiting for coach approval.");
-                setExerciseFormData({ coachId: "", contactNumber: "", freeTime: "", sessionType: "" });
+                setExerciseFormData({ coachId: "", contactNumber: "", preferredDate: "", preferredTime: "", sessionType: "" });
                 // Refresh exercise requests
                 const reqRes = await fetch("/api/student/schedule-exercise");
                 if (reqRes.ok) {
                     const reqData = await reqRes.json();
                     setExerciseRequests(reqData);
                 }
-                setActiveTab("Exercise");
+                setActiveTab("Consultations");
             } else {
                 const data = await res.json();
                 setErrors({ ...errors, scheduleSubmit: data.error || "Failed to schedule exercise" });
@@ -830,71 +839,24 @@ export default function StudentDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Exercise" && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-                            <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
-                                <div className="flex justify-between items-center mb-10">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-xl">🏆</div>
-                                        <div>
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">UPCOMING SESSIONS</h3>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Live Timeline • Updated Weekly</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setActiveTab("Schedule Exercise")}
-                                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100/50"
-                                    >
-                                        Schedule Consultation
-                                    </button>
-                                </div>
-                                <div className="space-y-5">
-                                    {trainingSchedules.length === 0 ? (
-                                        <div className="py-24 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100 flex flex-col items-center gap-6">
-                                            <div className="text-6xl grayscale opacity-30">🏟️</div>
-                                            <div className="max-w-xs">
-                                                <h4 className="text-lg font-black text-gray-900 tracking-tight mb-2">No Sessions Assigned</h4>
-                                                <p className="text-xs text-gray-400 font-medium leading-relaxed">Your professional team training times and workout schedules from coaches will appear here.</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        trainingSchedules.map((item, idx) => (
-                                            <div key={idx} className={`flex items-center justify-between p-7 rounded-[32px] border transition-all bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/20 group`}>
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-[20px] bg-white shadow-sm border border-gray-50 flex flex-col items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:scale-105">
-                                                        <span className="text-[10px] uppercase opacity-60 leading-none mb-1.5">{item.date.split('-')[2] || "DAY"}</span>
-                                                        <span className="text-lg leading-none">{item.date.split('-')[1] || "—"}</span>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-base font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight mb-1">{item.activity}</div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 uppercase tracking-widest">{item.sportName}</span>
-                                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold">
-                                                                <span>🕒</span>
-                                                                {item.time}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right hidden md:block">
-                                                    <div className="text-xs font-black text-gray-900 underline decoration-indigo-200 underline-offset-4 mb-1">{item.location}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-end gap-1">
-                                                       <span>📍</span> Venue
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                             </section>
- 
+
+                    {activeTab === "Consultations" && (
+                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
                              <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
-                                 <div className="flex items-center gap-4 mb-10">
-                                     <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl">🤝</div>
-                                     <div>
-                                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">COACHING SESSIONS</h3>
-                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requested & Approved consultations</p>
+                                 <div className="flex justify-between items-center mb-10">
+                                     <div className="flex items-center gap-4">
+                                         <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl">🤝</div>
+                                         <div>
+                                             <h3 className="text-2xl font-black text-gray-900 tracking-tight">COACHING SESSIONS</h3>
+                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requested & Approved consultations</p>
+                                         </div>
                                      </div>
+                                     <button 
+                                         onClick={() => setActiveTab("Schedule Exercise")}
+                                         className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100/50"
+                                     >
+                                         Schedule Consultation
+                                     </button>
                                  </div>
  
                                  <div className="space-y-4">
@@ -905,10 +867,10 @@ export default function StudentDashboard() {
                                          </div>
                                      ) : (
                                          exerciseRequests.map((req, idx) => (
-                                             <div key={req._id || idx} className="flex items-center justify-between p-6 rounded-[28px] bg-gray-50/50 border border-gray-100 group hover:bg-white hover:shadow-lg transition-all">
+                                             <div key={req._id || idx} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[28px] bg-gray-50/50 border border-gray-100 group hover:bg-white hover:shadow-lg transition-all gap-4">
                                                  <div className="flex items-center gap-5">
                                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-sm ${
-                                                         req.status === 'APPROVED' ? 'bg-emerald-600 text-white' : 
+                                                         req.status === 'ACCEPTED' ? 'bg-emerald-600 text-white' : 
                                                          req.status === 'REJECTED' ? 'bg-rose-600 text-white' : 
                                                          'bg-indigo-600 text-white'
                                                      }`}>
@@ -922,16 +884,28 @@ export default function StudentDashboard() {
                                                              <span className="text-[9px] font-black uppercase text-gray-400">🕒 {req.freeTime}</span>
                                                              <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
                                                              <span className={`text-[9px] font-black uppercase ${
-                                                                 req.status === 'APPROVED' ? 'text-emerald-500' : 
+                                                                 req.status === 'ACCEPTED' ? 'text-emerald-500' : 
                                                                  req.status === 'REJECTED' ? 'text-rose-500' : 
                                                                  'text-amber-500'
                                                              }`}>{req.status}</span>
                                                          </div>
                                                      </div>
                                                  </div>
-                                                 <div className="text-right">
-                                                     <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1.5">Session Type</div>
-                                                     <div className="text-[10px] font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100">{req.sessionType}</div>
+                                                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                                                     {req.sessionType === 'ONLINE' && req.status === 'ACCEPTED' && req.meetingLink && (
+                                                         <a 
+                                                             href={req.meetingLink} 
+                                                             target="_blank" 
+                                                             rel="noopener noreferrer" 
+                                                             className="bg-sky-50 text-sky-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-sky-100 hover:bg-sky-100 transition-colors"
+                                                         >
+                                                             Join Session
+                                                         </a>
+                                                     )}
+                                                     <div className="text-right">
+                                                         <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1.5">Session Type</div>
+                                                         <div className="text-[10px] font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100">{req.sessionType}</div>
+                                                     </div>
                                                  </div>
                                              </div>
                                          ))
@@ -951,7 +925,7 @@ export default function StudentDashboard() {
                                         <p className="text-gray-400 text-sm font-medium">Book a guided session with your team coach.</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setActiveTab("Exercise")} className="text-indigo-600 font-bold text-xs hover:underline">← Back to Plan</button>
+                                <button onClick={() => setActiveTab("Consultations")} className="text-indigo-600 font-bold text-xs hover:underline">← Back to Consultations</button>
                             </div>
 
                             <form onSubmit={handleScheduleExercise} className="space-y-6">
@@ -995,18 +969,34 @@ export default function StudentDashboard() {
  
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                      <div>
-                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Free Time</label>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Date</label>
+                                        <input 
+                                            type="date"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            value={exerciseFormData.preferredDate} 
+                                            onChange={(e) => {
+                                                setExerciseFormData({...exerciseFormData, preferredDate: e.target.value});
+                                                validateExerciseField("preferredDate", e.target.value);
+                                            }} 
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.preferredDate ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                        />
+                                        {errors.preferredDate && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.preferredDate}</p>}
+                                    </div>
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Time</label>
                                          <input 
-                                             type="text" placeholder="e.g. Wednesday 4:00 PM" 
-                                             value={exerciseFormData.freeTime} 
+                                             type="time" 
+                                             value={exerciseFormData.preferredTime} 
                                              onChange={(e) => {
-                                                 setExerciseFormData({...exerciseFormData, freeTime: e.target.value});
-                                                 validateExerciseField("freeTime", e.target.value);
+                                                 setExerciseFormData({...exerciseFormData, preferredTime: e.target.value});
+                                                 validateExerciseField("preferredTime", e.target.value);
                                              }} 
-                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.freeTime ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.preferredTime ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
                                          />
-                                         {errors.freeTime && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.freeTime}</p>}
+                                         {errors.preferredTime && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.preferredTime}</p>}
                                      </div>
+                                 </div>
+                                 <div className="grid grid-cols-1 gap-6 mt-6">
                                      <div>
                                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Session Type</label>
                                          <select 
