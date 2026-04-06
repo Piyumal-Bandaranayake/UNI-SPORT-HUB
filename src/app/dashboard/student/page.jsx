@@ -8,7 +8,6 @@ const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Dashboard" },
     { id: "Explore", icon: "🔍", label: "Explore Sports" },
     { id: "Bookings", icon: "🏸", label: "Bookings" },
-    { id: "Applications", icon: "📝", label: "My Applications" },
 ];
 
 const APPROVED_MENU_ITEMS = [
