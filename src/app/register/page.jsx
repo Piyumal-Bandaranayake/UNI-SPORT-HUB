@@ -195,7 +195,7 @@ export default function RegisterPage() {
                                 <div className="bg-rose-500 rounded-full p-1 text-white shadow-sm">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </div>
-                                <p className="text-xs text-rose-700 font-bold">{error}</p>
+                                <p className="text-sm text-rose-700 font-bold">{error}</p>
                             </div>
                         )}
                         {success && (
@@ -208,112 +208,108 @@ export default function RegisterPage() {
                         )}
 
                         <form className="space-y-6" onSubmit={handleSubmit}>
-                            {/* Grid layout for fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                                <div className="relative group">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-7">
+
+                                {/* Full Name */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Full Name</label>
                                     <input
-                                        id="name"
-                                        name="name"
-                                        type="text"
-                                        required
-                                        className="w-full border-b-2 border-slate-100 py-2 bg-transparent text-slate-900 placeholder-transparent focus:border-indigo-600 focus:outline-none transition-all duration-300 peer text-base font-medium"
-                                        placeholder="Full Name"
+                                        id="name" name="name" type="text" required
+                                        className="w-full border-b-2 border-slate-200 py-2 bg-transparent text-slate-900 text-base font-medium focus:border-indigo-600 focus:outline-none transition-all duration-200"
+                                        placeholder="e.g. John Silva"
                                         value={formData.name}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="name" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Full Name</label>
                                 </div>
 
-                                <div className="relative group">
-                                    <select
-                                        id="faculty"
-                                        name="faculty"
-                                        required
-                                        className="w-full border-b-2 border-slate-100 py-2 bg-transparent text-slate-800 focus:border-indigo-600 focus:outline-none transition-all duration-300 text-base font-medium appearance-none cursor-pointer"
-                                        value={formData.faculty}
-                                        onChange={handleChange}
-                                    >
-                                        <option value="" disabled>Select Faculty</option>
-                                        <option value="IT">IT – Computing</option>
-                                        <option value="BM">BM – Business</option>
-                                        <option value="ENG">ENG – Engineering</option>
-                                        <option value="HM">HM – Hospitality</option>
-                                        <option value="AR">AR – Agriculture</option>
-                                        <option value="HU">HU – Humanities</option>
-                                        <option value="FA">FA – Fine Arts</option>
-                                    </select>
-                                    <div className="absolute right-0 top-3 pointer-events-none text-slate-300">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                {/* Faculty */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-extrabold text-indigo-600 uppercase tracking-widest">Faculty</label>
+                                    <div className="relative">
+                                        <select
+                                            id="faculty" name="faculty" required
+                                            className="w-full border-b-2 border-slate-200 py-2 bg-transparent text-slate-800 text-base font-medium focus:border-indigo-600 focus:outline-none appearance-none cursor-pointer transition-all duration-200"
+                                            value={formData.faculty}
+                                            onChange={handleChange}
+                                        >
+                                            <option value="" disabled>Select Faculty</option>
+                                            <option value="IT">IT – Computing</option>
+                                            <option value="BM">BM – Business</option>
+                                            <option value="ENG">ENG – Engineering</option>
+                                            <option value="HM">HM – Hospitality</option>
+                                            <option value="AR">AR – Agriculture</option>
+                                            <option value="HU">HU – Humanities</option>
+                                            <option value="FA">FA – Fine Arts</option>
+                                        </select>
+                                        <div className="absolute right-0 top-3 pointer-events-none text-slate-300">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
                                     </div>
-                                    <label htmlFor="faculty" className="absolute left-0 -top-2.5 text-indigo-600 text-xs font-extrabold uppercase tracking-wider">Faculty</label>
                                 </div>
 
-                                <div className="relative group">
+                                {/* Registration No */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`text-[11px] font-extrabold uppercase tracking-widest ${idError ? "text-rose-500" : "text-slate-500"}`}>Registration No</label>
                                     <input
-                                        id="universityId"
-                                        name="universityId"
-                                        type="text"
-                                        required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${idError ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
-                                        placeholder="Registration Number"
+                                        id="universityId" name="universityId" type="text" required
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 text-base font-medium focus:outline-none transition-all duration-200 ${idError ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-indigo-600"}`}
+                                        placeholder="e.g. IT12345678"
                                         value={formData.universityId}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="universityId" className={`absolute left-0 -top-2.5 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-xs cursor-text uppercase tracking-wider ${idError ? "text-rose-500" : "text-slate-400"}`}>Registration No</label>
                                     {idError ? (
-                                        <p className="absolute -bottom-4 left-0 text-[9px] text-rose-500 font-bold">{idError}</p>
+                                        <div className="flex items-start gap-2 mt-1 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl px-3 py-2">
+                                            <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                                            <p className="text-[11px] font-semibold leading-tight">{idError}</p>
+                                        </div>
                                     ) : formData.universityId && formData.faculty && (
-                                        <p className="absolute -bottom-4 left-0 text-[10px] text-emerald-500 font-bold">✓ ID Valid</p>
+                                        <div className="flex items-center gap-1.5 mt-1 text-emerald-600">
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+                                            <p className="text-[11px] font-bold">Registration ID is valid</p>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="relative group">
+                                {/* University Email */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`text-[11px] font-extrabold uppercase tracking-widest ${emailError ? "text-rose-500" : "text-slate-500"}`}>Email</label>
                                     <input
-                                        id="universityEmail"
-                                        name="universityEmail"
-                                        type="email"
-                                        required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium ${emailError ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
-                                        placeholder="University Email"
+                                        id="universityEmail" name="universityEmail" type="email" required
+                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 text-base font-medium focus:outline-none transition-all duration-200 ${emailError ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-indigo-600"}`}
+                                        placeholder="e.g. IT12345678@my.sliit.lk"
                                         value={formData.universityEmail}
                                         onChange={handleChange}
                                     />
-                                    <label htmlFor="universityEmail" className={`absolute left-0 -top-2.5 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-xs cursor-text uppercase tracking-wider ${emailError ? "text-rose-500" : "text-slate-400"}`}>Email</label>
                                     {emailError && (
-                                        <p className="absolute -bottom-4 left-0 text-[9px] text-rose-500 font-bold">{emailError}</p>
+                                        <div className="flex items-start gap-2 mt-1 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl px-3 py-2">
+                                            <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                                            <p className="text-[11px] font-semibold leading-tight">{emailError}</p>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="relative group">
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type={showPassword ? "text" : "password"}
-                                        required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium pr-10 ${passwordError && formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
-                                        placeholder="Password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                    />
-                                    <label htmlFor="password" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Password</label>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-0 top-2 text-slate-300 hover:text-indigo-600 transition-colors"
-                                    >
-                                        {showPassword ? (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825M19.914 11.082C20.841 12.33 21.05 13.924 20.35 15.35M19.914 11.082a9.04 9.04 0 00-1.87-2.673l-4.168 4.168" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                    
-                                    <div className="flex flex-wrap gap-2 pt-2">
+                                {/* Password */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Password</label>
+                                    <div className="relative">
+                                        <input
+                                            id="password" name="password"
+                                            type={showPassword ? "text" : "password"}
+                                            required
+                                            className={`w-full border-b-2 py-2 pr-10 bg-transparent text-slate-900 text-base font-medium focus:outline-none transition-all duration-200 ${passwordError && formData.password ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-indigo-600"}`}
+                                            placeholder="Min 8 chars, Aa, 1, @"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                        />
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-2.5 text-slate-300 hover:text-indigo-600 transition-colors">
+                                            {showPassword ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825" /></svg>
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 pt-1">
                                         {[
                                             { label: "8+ Char", test: (pw) => pw.length >= 8 },
                                             { label: "Aa", test: (pw) => /[A-Z]/.test(pw) && /[a-z]/.test(pw) },
@@ -322,46 +318,49 @@ export default function RegisterPage() {
                                         ].map((req, i) => {
                                             const isDone = req.test(formData.password);
                                             return (
-                                                <div key={i} className={`flex items-center px-2 py-0.5 rounded text-[8px] font-black border transition-all duration-300 ${isDone ? "bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm" : "bg-slate-50 border-slate-50 text-slate-300/50"}`}>
-                                                    {isDone ? "✓ " : ""}{req.label}
-                                                </div>
+                                                <span key={i} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 ${isDone ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                                                    {isDone ? "✓" : "○"} {req.label}
+                                                </span>
                                             );
                                         })}
                                     </div>
                                 </div>
 
-                                <div className="relative group">
-                                    <input
-                                        id="confirmPassword"
-                                        name="confirmPassword"
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        required
-                                        className={`w-full border-b-2 py-2 bg-transparent text-slate-900 placeholder-transparent focus:outline-none transition-all duration-300 peer text-base font-medium pr-10 ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-300 focus:border-rose-500" : "border-slate-100 focus:border-indigo-600"}`}
-                                        placeholder="Confirm Password"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                    />
-                                    <label htmlFor="confirmPassword" className="absolute left-0 -top-2.5 text-slate-400 text-xs font-bold transition-all duration-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-300 peer-placeholder-shown:top-2 peer-focus:-top-2.5 peer-focus:text-indigo-600 peer-focus:text-xs cursor-text uppercase tracking-wider">Confirm</label>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-0 top-2 text-slate-300 hover:text-indigo-600 transition-colors"
-                                    >
-                                        {showConfirmPassword ? (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825M19.914 11.082C20.841 12.33 21.05 13.924 20.35 15.35M19.914 11.082a9.04 9.04 0 00-1.87-2.673l-4.168 4.168" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        )}
-                                    </button>
+                                {/* Confirm Password */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`text-[11px] font-extrabold uppercase tracking-widest ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "text-rose-500" : "text-slate-500"}`}>Confirm Password</label>
+                                    <div className="relative">
+                                        <input
+                                            id="confirmPassword" name="confirmPassword"
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            required
+                                            className={`w-full border-b-2 py-2 pr-10 bg-transparent text-slate-900 text-base font-medium focus:outline-none transition-all duration-200 ${formData.confirmPassword && formData.confirmPassword !== formData.password ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-indigo-600"}`}
+                                            placeholder="Re-enter your password"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                        />
+                                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-0 top-2.5 text-slate-300 hover:text-indigo-600 transition-colors">
+                                            {showConfirmPassword ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L5.136 5.136m13.728 13.728L13.875 18.825" /></svg>
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                            )}
+                                        </button>
+                                    </div>
                                     {formData.confirmPassword && formData.confirmPassword !== formData.password && (
-                                        <p className="absolute -bottom-4 left-0 text-[10px] text-rose-500 font-bold">Mismatched</p>
+                                        <div className="flex items-center gap-2 mt-1 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl px-3 py-2">
+                                            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                                            <p className="text-[11px] font-semibold">Passwords don&apos;t match</p>
+                                        </div>
+                                    )}
+                                    {formData.confirmPassword && formData.confirmPassword === formData.password && (
+                                        <div className="flex items-center gap-1.5 mt-1 text-emerald-600">
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+                                            <p className="text-[11px] font-bold">Passwords match</p>
+                                        </div>
                                     )}
                                 </div>
+
                             </div>
 
                             <div className="pt-4 space-y-4">

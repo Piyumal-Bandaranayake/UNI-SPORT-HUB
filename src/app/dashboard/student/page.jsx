@@ -15,7 +15,7 @@ const APPROVED_MENU_ITEMS = [
     { id: "Consultations", icon: "🤝", label: "Consultations" },
 ];
 
-const SETTINGS_MENU_ITEM = { id: "Settings", icon: "⚙️", label: "Settings" };
+
 
 export default function StudentDashboard() {
     const { data: session } = useSession();
@@ -389,18 +389,7 @@ export default function StudentDashboard() {
                         </>
                     )}
 
-                    <div className="mt-2">
-                        <button
-                            onClick={() => setActiveTab(SETTINGS_MENU_ITEM.id)}
-                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === SETTINGS_MENU_ITEM.id
-                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                                }`}
-                        >
-                            <span className="text-lg">{SETTINGS_MENU_ITEM.icon}</span>
-                            {SETTINGS_MENU_ITEM.label}
-                        </button>
-                    </div>
+
 
                     {joinedSports.length > 0 && (
                         <div className="pt-6 mt-6 border-t border-gray-100 pb-10">
