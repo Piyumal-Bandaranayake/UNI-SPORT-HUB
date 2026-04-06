@@ -81,12 +81,12 @@ export default function CourtBookingClient({ sport, user }) {
     if (bookingResult) {
         return (
             <div className="max-w-4xl mx-auto px-6 py-16">
-                <div className="bg-white rounded-[40px] p-20 text-center border shadow-xl">
-                     <div className="text-6xl mb-6 text-emerald-500 font-black">SUCCESS!</div>
-                     <h3 className="text-3xl font-bold text-gray-900 mb-4">Court Booked Successfully</h3>
-                     <p className="text-gray-500 mb-8 font-medium">Your court reservation has been confirmed for {bookingDate} at {timeSlot}.</p>
-                     
-                     <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-8 text-left">
+                <div className="bg-white rounded-[40px] p-12 text-center border shadow-xl">
+                    <div className="text-5xl mb-4 text-emerald-500 font-black">✅ SUCCESS!</div>
+                    <h3 className="text-3xl font-bold text-gray-900 mb-2">Court Booked Successfully</h3>
+                    <p className="text-gray-500 mb-8 font-medium">Your reservation is confirmed for <span className="text-indigo-600 font-bold">{bookingDate}</span> at <span className="text-indigo-600 font-bold">{timeSlot}</span>.</p>
+
+                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-8 text-left">
                         <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                             <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Location</div>
                             <div className="text-gray-900 font-bold truncate">{bookingResult.booking.courtLocation}</div>
@@ -95,26 +95,42 @@ export default function CourtBookingClient({ sport, user }) {
                             <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Sport</div>
                             <div className="text-gray-900 font-bold truncate">{bookingResult.booking.sportName}</div>
                         </div>
-                     </div>
-                     
-                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                         <button 
-                             onClick={() => { setBookingResult(null); setBookingDate(""); setTimeSlot(""); }}
-                             className="w-full sm:w-auto px-8 bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                         >
-                             Book Another
-                         </button>
-                         <Link 
-                            href={`/sports/${sport._id}`}
+                    </div>
+
+                    {/* QR Code */}
+                    {bookingResult.booking.qrCode && (
+                        <div className="mb-8">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Your Booking QR Code</p>
+                            <div className="inline-block bg-indigo-50 p-6 rounded-[32px] border border-indigo-100">
+                                <img
+                                    src={bookingResult.booking.qrCode}
+                                    alt="Booking QR Code"
+                                    className="w-48 h-48 mx-auto"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 font-medium mt-3">Present this QR code to the sports department staff to verify your booking.</p>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <Link
+                           href="/dashboard/student"
+                           className="w-full sm:w-auto px-8 bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                        >
+                           Go to Profile
+                        </Link>
+                        <button
+                            onClick={() => { setBookingResult(null); setBookingDate(""); setTimeSlot(""); }}
                             className="w-full sm:w-auto px-8 bg-white text-gray-900 border-2 border-gray-100 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-50 transition-all"
-                         >
-                            Back to {sport.name}
-                         </Link>
-                     </div>
+                        >
+                            Book Another Time
+                        </button>
+                    </div>
                 </div>
             </div>
         );
     }
+
 
     return (
         <div className="max-w-6xl mx-auto px-6 py-16">

@@ -10,6 +10,12 @@ const CourtBookingSchema = new mongoose.Schema({
     bookingDate: { type: String, required: true }, // Format YYYY-MM-DD
     timeSlot: { type: String, required: true }, // e.g., "14:00" mapping to an hour slot
     status: { type: String, enum: ["PENDING", "CONFIRMED", "CANCELLED"], default: "CONFIRMED" },
+    qrCode: { type: String }, // base64 data URL
 }, { timestamps: true });
 
-export default mongoose.models.CourtBooking || mongoose.model('CourtBooking', CourtBookingSchema);
+// Prevent mongoose from using the cached model with the old schema (without qrCode) in development
+if (mongoose.models.CourtBooking) {
+  delete mongoose.models.CourtBooking;
+}
+
+export default mongoose.model('CourtBooking', CourtBookingSchema);

@@ -24,6 +24,8 @@ export default function StudentDashboard() {
     const [sports, setSports] = useState([]);
     const [joinedSports, setJoinedSports] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [courtBookings, setCourtBookings] = useState([]);
+    const [bookingSubTab, setBookingSubTab] = useState("equipment");
     const [coaches, setCoaches] = useState([]);
     const [trainingSchedules, setTrainingSchedules] = useState([]);
     const [exerciseRequests, setExerciseRequests] = useState([]);
@@ -98,9 +100,10 @@ export default function StudentDashboard() {
                     fetch("/api/student/coaches"),
                     fetch("/api/student/bookings"),
                     fetch("/api/student/training-schedules"),
-                    fetch("/api/student/notifications")
+                    fetch("/api/student/notifications"),
+                    fetch("/api/student/court-bookings")
                 ]);
-                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes] = responses;
+                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes, notificationsRes, courtBookingsRes] = responses;
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
                     setSports(data);
@@ -121,10 +124,13 @@ export default function StudentDashboard() {
                     const schedulesData = await schedulesRes.json();
                     setTrainingSchedules(schedulesData || []);
                 }
-                const notificationsRes = responses[5];
                 if (notificationsRes && notificationsRes.ok) {
                     const notifyData = await notificationsRes.json();
                     setNotifications(notifyData);
+                }
+                if (courtBookingsRes && courtBookingsRes.ok) {
+                    const courtData = await courtBookingsRes.json();
+                    setCourtBookings(courtData || []);
                 }
                 const exerciseRequestsRes = await fetch("/api/student/schedule-exercise");
                 if (exerciseRequestsRes.ok) {
@@ -230,13 +236,8 @@ export default function StudentDashboard() {
             });
             
             if (res.ok) {
-                alert("Booking canceled successfully!");
-                // Refresh bookings list
-                const bookingsRes = await fetch("/api/student/bookings");
-                if (bookingsRes.ok) {
-                    const bookingsData = await bookingsRes.json();
-                    setBookings(bookingsData);
-                }
+                // Instantly remove from list
+                setBookings(prev => prev.filter(b => b._id !== bookingId));
             } else {
                 const data = await res.json();
                 alert(data.error || "Failed to cancel booking");
@@ -244,6 +245,25 @@ export default function StudentDashboard() {
         } catch (err) {
             console.error(err);
             alert("An error occurred while canceling the booking.");
+        }
+    };
+
+    const handleCancelCourtBooking = async (bookingId) => {
+        if (!confirm("Are you sure you want to cancel this court booking?")) return;
+        try {
+            const res = await fetch(`/api/student/court-bookings/${bookingId}`, {
+                method: "PATCH"
+            });
+            if (res.ok) {
+                // Instantly remove from list
+                setCourtBookings(prev => prev.filter(b => b._id !== bookingId));
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to cancel court booking");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while cancelling the court booking.");
         }
     };
 
@@ -529,77 +549,179 @@ export default function StudentDashboard() {
 
                     {activeTab === "Bookings" && (
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900">My Equipment Rentals</h3>
-                                    <p className="text-gray-400 text-sm font-medium">Track your active bookings and access QR codes for collection/return.</p>
-                                </div>
+                            {/* Sub-tab Navigation */}
+                            <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit">
+                                <button
+                                    onClick={() => setBookingSubTab("equipment")}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        bookingSubTab === "equipment"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900"
+                                    }`}
+                                >
+                                    🏸 Equipment Rentals
+                                </button>
+                                <button
+                                    onClick={() => setBookingSubTab("court")}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        bookingSubTab === "court"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900"
+                                    }`}
+                                >
+                                    🏟️ Court Bookings
+                                    {courtBookings.filter(b => b.status !== "CANCELLED").length > 0 && (
+                                        <span className="ml-2 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                            {courtBookings.filter(b => b.status !== "CANCELLED").length}
+                                        </span>
+                                    )}
+                                </button>
                             </div>
 
-                            {bookings.length === 0 ? (
-                                <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
-                                    <div className="text-6xl mb-6">📦</div>
-                                    <h3 className="text-2xl font-black text-gray-900 mb-2">No Bookings Yet</h3>
-                                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">Explore university sports and book equipment to see them here.</p>
-                                    <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                                        Browse Sports
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {bookings.map((booking) => (
-                                        <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                                            
-                                            <div className="flex justify-between items-start mb-6 relative z-10">
-                                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                                                    {booking.equipmentName.toLowerCase().includes("ball") ? "⚽" : "🏸"}
-                                                </div>
-                                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                                                    booking.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    booking.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                    'bg-gray-50 text-gray-400 border-gray-100'
-                                                }`}>
-                                                    {booking.status}
-                                                </span>
-                                            </div>
-
-                                            <div className="relative z-10">
-                                                <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.equipmentName}</h4>
-                                                <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-8">{booking.sportName}</p>
-                                                
-                                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Quantity</div>
-                                                        <div className="text-lg font-black text-gray-900">{booking.quantity} Units</div>
-                                                    </div>
-                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
-                                                        <div className="text-sm font-black text-gray-900">{new Date(booking.bookingDate).toLocaleDateString()}</div>
-                                                    </div>
-                                                </div>
-
-                                                {booking.qrCode && (
-                                                    <button 
-                                                        onClick={() => setSelectedBooking(booking)}
-                                                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
-                                                    >
-                                                        Show QR Code
-                                                    </button>
-                                                )}
-
-                                                {(booking.status === "PENDING" || booking.status === "ACTIVE") && (
-                                                    <button 
-                                                        onClick={() => handleCancelBooking(booking._id)}
-                                                        className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
-                                                    >
-                                                        Cancel Booking
-                                                    </button>
-                                                )}
-                                            </div>
+                            {/* Equipment Rentals */}
+                            {bookingSubTab === "equipment" && (
+                                <>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">My Equipment Rentals</h3>
+                                        <p className="text-gray-400 text-sm font-medium">Track your active bookings and access QR codes for collection/return.</p>
+                                    </div>
+                                    {bookings.length === 0 ? (
+                                        <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
+                                            <div className="text-6xl mb-6">📦</div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2">No Equipment Bookings Yet</h3>
+                                            <p className="text-gray-500 mb-8 max-w-sm mx-auto">Explore university sports and book equipment to see them here.</p>
+                                            <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                                Browse Sports
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {bookings.map((booking) => (
+                                                <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                                                    <div className="flex justify-between items-start mb-6 relative z-10">
+                                                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                                            {booking.equipmentName.toLowerCase().includes("ball") ? "⚽" : "🏸"}
+                                                        </div>
+                                                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                                                            booking.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            booking.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                            'bg-gray-50 text-gray-400 border-gray-100'
+                                                        }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="relative z-10">
+                                                        <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.equipmentName}</h4>
+                                                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-8">{booking.sportName}</p>
+                                                        <div className="grid grid-cols-2 gap-4 mb-8">
+                                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Quantity</div>
+                                                                <div className="text-lg font-black text-gray-900">{booking.quantity} Units</div>
+                                                            </div>
+                                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                                <div className="text-sm font-black text-gray-900">{new Date(booking.bookingDate).toLocaleDateString()}</div>
+                                                            </div>
+                                                        </div>
+                                                        {booking.qrCode && (
+                                                            <button
+                                                                onClick={() => setSelectedBooking(booking)}
+                                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
+                                                            >
+                                                                Show QR Code
+                                                            </button>
+                                                        )}
+                                                        {(booking.status === "PENDING" || booking.status === "ACTIVE") && (
+                                                            <button
+                                                                onClick={() => handleCancelBooking(booking._id)}
+                                                                className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                                            >
+                                                                Cancel Booking
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Court Bookings */}
+                            {bookingSubTab === "court" && (
+                                <>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">My Court Bookings</h3>
+                                        <p className="text-gray-400 text-sm font-medium">View and manage your court reservations.</p>
+                                    </div>
+                                    {courtBookings.length === 0 ? (
+                                        <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
+                                            <div className="text-6xl mb-6">🏟️</div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2">No Court Bookings Yet</h3>
+                                            <p className="text-gray-500 mb-8 max-w-sm mx-auto">Visit a sport page and reserve a court to see your bookings here.</p>
+                                            <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                                Find a Sport
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {courtBookings.map((booking) => (
+                                                <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+                                                    {/* Status Badge */}
+                                                    <div className="flex justify-between items-start mb-6 relative z-10">
+                                                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">🏟️</div>
+                                                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                                                            booking.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                            booking.status === 'PENDING'   ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            'bg-gray-50 text-gray-400 border-gray-100'
+                                                        }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="relative z-10">
+                                                        <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.sportName}</h4>
+                                                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-6">{booking.courtLocation}</p>
+
+                                                        <div className="grid grid-cols-2 gap-3 mb-6">
+                                                            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                                <div className="text-sm font-black text-gray-900">{booking.bookingDate}</div>
+                                                            </div>
+                                                            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Time</div>
+                                                                <div className="text-sm font-black text-gray-900">{booking.timeSlot}</div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* QR Code Button */}
+                                                        {booking.qrCode && (
+                                                            <button
+                                                                onClick={() => setSelectedBooking({ ...booking, isCourtBooking: true })}
+                                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
+                                                            >
+                                                                📱 Show QR Code
+                                                            </button>
+                                                        )}
+
+                                                        {/* Cancel Button */}
+                                                        {booking.status !== "CANCELLED" && (
+                                                            <button
+                                                                onClick={() => handleCancelCourtBooking(booking._id)}
+                                                                className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                                            >
+                                                                Cancel Booking
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -999,39 +1121,92 @@ export default function StudentDashboard() {
 
             {/* Modal for Booking QR */}
             {selectedBooking && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-[40px] w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in duration-300 max-h-full flex flex-col overflow-hidden">
                         <button 
                             onClick={() => setSelectedBooking(null)}
-                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-white hover:bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md z-20 border border-gray-100"
                         >
                             ✕
                         </button>
                         
-                        <div className="text-center">
-                            <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Identity Hub</div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tight">Booking Verifier</h3>
-                            
-                            <div className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 inline-block mb-8">
-                                <img 
-                                    src={selectedBooking.qrCode} 
-                                    alt="Booking QR" 
-                                    className="w-48 h-48 mx-auto"
-                                />
-                            </div>
-                            
-                            <div className="space-y-4 text-left">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Equipment Name</div>
-                                    <div className="text-gray-900 font-bold">{selectedBooking.equipmentName}</div>
+                        <div className="flex flex-col md:flex-row overflow-y-auto w-full h-full max-h-[85vh] custom-scrollbar">
+                            {/* Left Side: QR Code Area */}
+                            <div className="w-full md:w-2/5 bg-gray-50 flex flex-col items-center justify-center p-8 sm:p-12 border-b md:border-b-0 md:border-r border-gray-100 relative">
+                                {/* Decorative elements */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-sky-600/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+                                
+                                <div className="text-center w-full relative z-10">
+                                    <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5 bg-indigo-50 inline-block px-3 py-1 rounded-full border border-indigo-100/50">
+                                        {selectedBooking.isCourtBooking ? "Court Booking" : "Identity Hub"}
+                                    </div>
+                                    <h3 className="text-3xl font-black text-gray-900 mb-8 uppercase tracking-tight leading-none mt-2">Booking<br/>Verifier</h3>
+                                    
+                                    <div className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-md inline-block mb-6 relative group transform hover:scale-105 transition-all duration-300">
+                                        <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm shadow-md font-black">✓</div>
+                                        <img 
+                                            src={selectedBooking.qrCode} 
+                                            alt="Booking QR" 
+                                            className="w-48 h-48 mx-auto object-contain"
+                                        />
+                                    </div>
+                                    
+                                    <p className="mt-2 text-xs text-gray-400 font-medium px-4 leading-relaxed">
+                                        Present this verified code to the sports department staff at the front desk.
+                                    </p>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Booking Reference</div>
-                                    <div className="text-[10px] font-mono font-medium text-gray-500 truncate">{selectedBooking._id}</div>
+                            </div>
+
+                            {/* Right Side: Details Area */}
+                            <div className="w-full md:w-3/5 p-8 sm:p-12 flex flex-col justify-center bg-white relative">
+                                <h4 className="text-sm font-black text-gray-300 uppercase tracking-widest mb-6">Reservation Details</h4>
+                                <div className="space-y-4">
+                                    {selectedBooking.isCourtBooking ? (
+                                        <>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Sport Type</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.sportName}</div>
+                                            </div>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Assigned Location</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.courtLocation}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-5 bg-indigo-50 rounded-[24px] border border-indigo-100">
+                                                    <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Reserved Date</div>
+                                                    <div className="text-lg font-black text-indigo-700">{selectedBooking.bookingDate}</div>
+                                                </div>
+                                                <div className="p-5 bg-sky-50 rounded-[24px] border border-sky-100">
+                                                    <div className="text-[10px] text-sky-400 font-bold uppercase tracking-widest mb-1">Arrival Time</div>
+                                                    <div className="text-lg font-black text-sky-700">{selectedBooking.timeSlot}</div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Equipment Item</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.equipmentName}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-5 bg-indigo-50 rounded-[24px] border border-indigo-100">
+                                                    <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Reservation Date</div>
+                                                    <div className="text-lg font-black text-indigo-700">{selectedBooking.bookingDate ? new Date(selectedBooking.bookingDate).toLocaleDateString() : "-"}</div>
+                                                </div>
+                                                <div className="p-5 bg-sky-50 rounded-[24px] border border-sky-100">
+                                                    <div className="text-[10px] text-sky-400 font-bold uppercase tracking-widest mb-1">Total Quantity</div>
+                                                    <div className="text-lg font-black text-sky-700">{selectedBooking.quantity || 1} Units</div>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-gray-200 transition-colors">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Official Reference ID</div>
+                                                <div className="text-sm font-mono font-bold text-gray-500 truncate">{selectedBooking._id}</div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                            
-                            <p className="mt-8 text-xs text-gray-400 font-medium">Please present this code to the sports department staff to verify your booking.</p>
                         </div>
                     </div>
                 </div>
