@@ -54,7 +54,7 @@ export async function POST(req) {
         
         if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY") {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             const prompt = `
                 Analyze booking data for ${sportName} on ${bookingDate}. 

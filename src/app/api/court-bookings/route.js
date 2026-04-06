@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/mongodb";
 import CourtBooking from "@/models/CourtBooking";
 import { NextResponse } from "next/server";
+import QRCode from "qrcode";
+import mongoose from "mongoose";
 
 export async function POST(req) {
     try {
@@ -46,8 +48,29 @@ export async function POST(req) {
             );
         }
 
-        // Create the booking
+        // Pre-generate the ObjectId so we can include it in the QR
+        const bookingId = new mongoose.Types.ObjectId();
+
+        // Generate QR code with booking details
+        const qrData = JSON.stringify({
+            bookingId: bookingId.toString(),
+            sport: sportName,
+            court: courtLocation,
+            date: bookingDate,
+            time: timeSlot,
+            name: session.user.name,
+            email: session.user.universityEmail || session.user.email
+        });
+
+        const qrCode = await QRCode.toDataURL(qrData, {
+            width: 300,
+            margin: 2,
+            color: { dark: "#1e1b4b", light: "#ffffff" }
+        });
+
+        // Create the booking in a single database operation
         const newBooking = await CourtBooking.create({
+            _id: bookingId,
             userId: session.user.universityId,
             userEmail: session.user.universityEmail || session.user.email,
             phoneNumber,
@@ -56,7 +79,8 @@ export async function POST(req) {
             courtLocation,
             bookingDate,
             timeSlot,
-            status: "CONFIRMED"
+            status: "CONFIRMED",
+            qrCode: qrCode
         });
 
         return NextResponse.json({ success: true, booking: newBooking }, { status: 201 });
