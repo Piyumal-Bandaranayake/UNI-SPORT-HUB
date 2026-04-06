@@ -46,6 +46,10 @@ export default function StudentDashboard() {
     const [isScheduling, setIsScheduling] = useState(false);
     const [errors, setErrors] = useState({});
 
+    const [aiPlan, setAiPlan] = useState(null);
+    const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+    const [planForm, setPlanForm] = useState({ age: "", weight: "", height: "", requirements: "" });
+
     const validateExerciseField = (name, value) => {
         let error = "";
         if (name === "contactNumber") {
@@ -101,9 +105,10 @@ export default function StudentDashboard() {
                     fetch("/api/student/bookings"),
                     fetch("/api/student/training-schedules"),
                     fetch("/api/student/notifications"),
-                    fetch("/api/student/court-bookings")
+                    fetch("/api/student/court-bookings"),
+                    fetch("/api/student/ai-meal-plan")
                 ]);
-                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes, notificationsRes, courtBookingsRes] = responses;
+                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes, notificationsRes, courtBookingsRes, aiPlanRes] = responses;
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
                     setSports(data);
@@ -131,6 +136,12 @@ export default function StudentDashboard() {
                 if (courtBookingsRes && courtBookingsRes.ok) {
                     const courtData = await courtBookingsRes.json();
                     setCourtBookings(courtData || []);
+                }
+                if (aiPlanRes && aiPlanRes.ok) {
+                    const planData = await aiPlanRes.json();
+                    if (planData.mealPlan) {
+                        setAiPlan(planData.mealPlan);
+                    }
                 }
                 const exerciseRequestsRes = await fetch("/api/student/schedule-exercise");
                 if (exerciseRequestsRes.ok) {
@@ -264,6 +275,53 @@ export default function StudentDashboard() {
         } catch (err) {
             console.error(err);
             alert("An error occurred while cancelling the court booking.");
+        }
+    };
+
+    const handleGenerateAIPlan = async (e) => {
+        e.preventDefault();
+        if (!planForm.age || !planForm.weight || !planForm.height || !planForm.requirements) {
+            alert("Please fill all fields.");
+            return;
+        }
+        setIsGeneratingPlan(true);
+        try {
+            const res = await fetch("/api/student/ai-meal-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    details: `Age: ${planForm.age}, Weight: ${planForm.weight}kg, Height: ${planForm.height}cm`,
+                    requirements: planForm.requirements
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAiPlan(data.mealPlan);
+            } else {
+                const errorData = await res.json();
+                alert(errorData.error || "Failed to generate AI plan");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Something went wrong");
+        } finally {
+            setIsGeneratingPlan(false);
+        }
+    };
+
+    const handleAddWater = async () => {
+        try {
+            const res = await fetch("/api/student/ai-meal-plan", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amount: 0.25 })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAiPlan(data.mealPlan);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -976,68 +1034,122 @@ export default function StudentDashboard() {
 
                     {activeTab === "Diet" && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <section className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <h3 className="text-xl font-black text-gray-900 tracking-tight">NUTRITION PLAN</h3>
-                                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Bulking Season</span>
-                                    </div>
-                                    
-                                    <div className="space-y-6">
-                                        {[
-                                            { meal: "Breakfast", items: "Oatmeal with berries, 3 Egg Whites", time: "08:00 AM", cal: "450" },
-                                            { meal: "Lunch", items: "Grilled Chicken Breast, Quinoa, Salad", time: "01:00 PM", cal: "650" },
-                                            { meal: "Pre-Workout", items: "Banana and Greek Yogurt", time: "04:30 PM", cal: "220" },
-                                            { meal: "Dinner", items: "Steamed Fish, Sweet Potato, Broccoli", time: "08:00 PM", cal: "510" },
-                                        ].map((item, idx) => (
-                                            <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
-                                                <div>
-                                                    <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">{item.meal} • {item.time}</div>
-                                                    <div className="text-sm font-bold text-gray-900">{item.items}</div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-lg font-black text-gray-900">{item.cal}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">KCAL</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                <div className="space-y-8">
-                                    <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase mb-6 tracking-widest">Hydration Tracker</h4>
-                                            <div className="flex items-end justify-center gap-2 mb-6">
-                                                <div className="text-5xl font-black text-sky-600">2.4</div>
-                                                <div className="text-xs font-black text-gray-300 mb-2 uppercase">Liters / 3.5L</div>
-                                            </div>
-                                            <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden mb-8">
-                                                <div className="bg-sky-500 h-full w-[68%]"></div>
-                                            </div>
-                                            <button className="w-full py-4 bg-sky-50 text-sky-600 rounded-2xl text-[10px] font-black uppercase hover:bg-sky-100 transition-all border border-sky-100">Add 250ml</button>
+                            {!aiPlan ? (
+                                <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl mx-auto">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl">🥗</div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-gray-900">Generate Your Meal Plan</h3>
+                                            <p className="text-gray-400 text-sm font-medium">Let AI craft your custom nutritional guidelines for today.</p>
                                         </div>
-                                    </section>
+                                    </div>
 
-                                    <section className="bg-emerald-600 text-white p-8 rounded-[32px] shadow-xl">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-4">Daily Balance</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                    <form onSubmit={handleGenerateAIPlan} className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div>
-                                                <div className="text-lg font-black">180g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Protein</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Age (Years)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 22" 
+                                                    value={planForm.age}
+                                                    onChange={e => setPlanForm({ ...planForm, age: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                             <div>
-                                                <div className="text-lg font-black">240g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Carbs</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Weight (kg)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 75" 
+                                                    value={planForm.weight}
+                                                    onChange={e => setPlanForm({ ...planForm, weight: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                             <div>
-                                                <div className="text-lg font-black">65g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Fats</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Height (cm)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 180" 
+                                                    value={planForm.height}
+                                                    onChange={e => setPlanForm({ ...planForm, height: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                         </div>
-                                    </section>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Your Requirement (Goal & Preferences)</label>
+                                            <textarea 
+                                                placeholder="e.g., Bulking, vegetarian, high protein" 
+                                                value={planForm.requirements}
+                                                onChange={e => setPlanForm({ ...planForm, requirements: e.target.value })}
+                                                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50 min-h-[100px] resize-none"
+                                            ></textarea>
+                                        </div>
+                                        <button disabled={isGeneratingPlan} type="submit" className="w-full bg-emerald-600 text-white py-4 mt-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-lg shadow-emerald-100">
+                                            {isGeneratingPlan ? "Generating with AI..." : "Generate Today's Plan"}
+                                        </button>
+                                    </form>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <section className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">NUTRITION PLAN</h3>
+                                            <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{aiPlan.goal}</span>
+                                        </div>
+                                        
+                                        <div className="space-y-6">
+                                            {aiPlan.meals.map((item, idx) => (
+                                                <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
+                                                    <div>
+                                                        <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">{item.meal} • {item.time}</div>
+                                                        <div className="text-sm font-bold text-gray-900">{item.items}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-lg font-black text-gray-900">{item.cal}</div>
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">KCAL</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <div className="space-y-8">
+                                        <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <h4 className="text-[10px] font-black text-gray-400 uppercase mb-6 tracking-widest">Hydration Tracker</h4>
+                                                <div className="flex items-end justify-center gap-2 mb-6">
+                                                    <div className="text-5xl font-black text-sky-600">{aiPlan.hydration?.current || 0}</div>
+                                                    <div className="text-xs font-black text-gray-300 mb-2 uppercase">Liters / {aiPlan.hydration?.target || 3.5}L</div>
+                                                </div>
+                                                <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden mb-8">
+                                                    <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: `${Math.min(((aiPlan.hydration?.current || 0) / (aiPlan.hydration?.target || 3.5)) * 100, 100)}%` }}></div>
+                                                </div>
+                                                <button onClick={handleAddWater} className="w-full py-4 bg-sky-50 text-sky-600 rounded-2xl text-[10px] font-black uppercase hover:bg-sky-100 transition-all border border-sky-100">Add 250ml</button>
+                                            </div>
+                                        </section>
+
+                                        <section className="bg-emerald-600 text-white p-8 rounded-[32px] shadow-xl">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-4">Daily Balance</h4>
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.protein || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Protein</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.carbs || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Carbs</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.fats || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Fats</div>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
