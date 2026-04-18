@@ -2,14 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 
+const INITIAL_MESSAGE = {
+  role: 'assistant',
+  content: 'Hey! I\'m UniBot 👋 Your UniSportHub AI assistant. Ask me anything about bookings, sports, schedules, or the platform!',
+};
+
 const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I am UniBot, your UniSportHub AI assistant. How can I help you today?' },
-  ]);
+  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -17,79 +21,105 @@ const AIAssistant = () => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
 
-    const userMessage = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = { role: 'user', content: trimmed };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
-    // Simulated response logic
-    setTimeout(() => {
-      let botResponse = '';
-      const lowerInput = input.toLowerCase();
+    try {
+      const res = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
 
-      if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-        botResponse = 'Hello there! How can I assist you with UniSportHub platform?';
-      } else if (lowerInput.includes('booking')) {
-        botResponse = 'You can book sports courts or equipment from your dashboard! Just navigate to the bookings section.';
-      } else if (lowerInput.includes('login') || lowerInput.includes('account')) {
-        botResponse = 'If you are having trouble logging in, make sure your credentials are correct or contact the administration.';
-      } else {
-        botResponse = "I'm here to help with any questions about UniSportHub! Feel free to ask about bookings, schedules, or sport events.";
-      }
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: botResponse }]);
+      const data = await res.json();
+      const reply = data.reply || "Sorry, I couldn't get a response. Please try again.";
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: "Oops, something went wrong. Please try again!" },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleClear = () => {
+    setMessages([INITIAL_MESSAGE]);
   };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-80 md:w-96 h-[500px] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col animate-appear duration-300">
+        <div className="mb-4 w-80 md:w-96 h-[520px] bg-white rounded-2xl shadow-2xl overflow-hidden border border-zinc-200 flex flex-col">
           {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-between text-white">
+          <div className="p-4 bg-gradient-to-r from-indigo-600 to-blue-600 flex items-center justify-between text-white shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" />
-                </svg>
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-lg">
+                🤖
               </div>
               <div>
-                <h3 className="font-bold">UniBot</h3>
-                <span className="text-xs text-white/80">Always active</span>
+                <h3 className="font-bold text-sm">UniBot</h3>
+                <span className="text-xs text-white/80 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block"></span>
+                  AI-powered
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/10 rounded-full transition-colors"
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleClear}
+                title="Clear chat"
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+            className="flex-1 overflow-y-auto p-4 space-y-3"
             style={{ scrollbarWidth: 'thin' }}
           >
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'assistant' && (
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs mr-2 mt-1 shrink-0">
+                    🤖
+                  </div>
+                )}
                 <div
-                  className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                  className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-tr-none'
-                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none'
+                      ? 'bg-indigo-600 text-white rounded-tr-none'
+                      : 'bg-zinc-100 text-zinc-800 rounded-tl-none'
                   }`}
                 >
                   {msg.content}
@@ -98,34 +128,53 @@ const AIAssistant = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-2xl rounded-tl-none text-zinc-400">
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce delay-100"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce delay-200"></span>
+                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs mr-2 mt-1 shrink-0">
+                  🤖
+                </div>
+                <div className="bg-zinc-100 px-3 py-3 rounded-2xl rounded-tl-none">
+                  <div className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Quick Suggestions */}
+          {messages.length === 1 && (
+            <div className="px-4 pb-2 flex flex-wrap gap-1.5 shrink-0">
+              {['How do I book a court?', 'Join a sport team', 'View my schedule'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setInput(s)}
+                  className="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input Area */}
-          <form onSubmit={handleSend} className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
-            <div className="relative">
+          <form onSubmit={handleSend} className="p-3 border-t border-zinc-100 bg-zinc-50 shrink-0">
+            <div className="relative flex items-center gap-2">
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask UniBot anything..."
-                className="w-full pl-4 pr-12 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                disabled={isLoading}
+                className="flex-1 pl-4 pr-3 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all disabled:opacity-60"
               />
               <button
                 type="submit"
-                disabled={isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-blue-600 disabled:text-zinc-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                title="Send"
+                disabled={isLoading || !input.trim()}
+                className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
               >
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
               </button>
@@ -137,24 +186,24 @@ const AIAssistant = () => {
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group ${
-          isOpen ? 'bg-zinc-800 text-white' : 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white'
+        className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 ${
+          isOpen
+            ? 'bg-zinc-700 text-white'
+            : 'bg-gradient-to-tr from-indigo-600 to-blue-500 text-white'
         }`}
+        aria-label={isOpen ? 'Close chat' : 'Open UniBot chat'}
       >
         {isOpen ? (
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
           <div className="relative">
-            <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-12 transition-transform">
-              <path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" />
-            </svg>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
+            <span className="text-2xl">🤖</span>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></div>
           </div>
         )}
       </button>
-
     </div>
   );
 };
