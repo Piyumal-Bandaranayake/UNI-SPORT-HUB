@@ -11,10 +11,20 @@ export async function GET() {
         }
 
         await dbConnect();
-        
-        const { universityId } = session.user;
-        const achievements = await Achievement.find({ coachUniversityId: universityId }).sort({ createdAt: -1 }).lean();
-        
+
+        // Collect all possible IDs this coach might have been saved under
+        const possibleIds = [
+            session.user.universityId,
+            session.user.universityEmail,
+            session.user.email,
+            session.user.id,
+            "COACH"
+        ].filter(Boolean);
+
+        const achievements = await Achievement.find({
+            coachUniversityId: { $in: possibleIds }
+        }).sort({ createdAt: -1 }).lean();
+
         const formatted = achievements.map(a => ({
             id: a._id.toString(),
             title: a.title,
@@ -40,12 +50,13 @@ export async function POST(req) {
         }
 
         await dbConnect();
-        
-        const { universityId } = session.user;
+
+        // Use the most stable identifier available for this coach
+        const coachId = session.user.universityId || session.user.universityEmail || session.user.email || session.user.id || "COACH";
         const body = await req.json();
-        
+
         const { title, description, date, image, sportName } = body;
-        
+
         if (!title || !description || !date || !image || !sportName) {
              return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
@@ -56,7 +67,7 @@ export async function POST(req) {
             date,
             image,
             sportName,
-            coachUniversityId: universityId || session.user.email || "COACH"
+            coachUniversityId: coachId
         });
 
         return NextResponse.json({ message: "Achievement published!", achievementId: newAchievement._id }, { status: 201 });

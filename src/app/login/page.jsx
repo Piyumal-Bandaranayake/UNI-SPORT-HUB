@@ -112,8 +112,8 @@ function LoginContent() {
                                 <div className="rounded-xl bg-rose-50 p-4 border border-rose-100 animate-shake flex items-center gap-4 shadow-sm shadow-rose-50/50">
                                     <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-xl shrink-0">⚠️</div>
                                     <div>
-                                        <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest leading-none mb-1">Error</p>
-                                        <p className="text-[12px] text-rose-700 font-bold leading-tight">{error}</p>
+                                        <p className="text-xs text-rose-400 font-black uppercase tracking-widest leading-none mb-1">Error</p>
+                                        <p className="text-sm text-rose-700 font-bold leading-tight">{error}</p>
                                     </div>
                                 </div>
                             )}

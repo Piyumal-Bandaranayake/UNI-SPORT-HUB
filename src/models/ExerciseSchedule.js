@@ -7,6 +7,7 @@ const ExerciseScheduleSchema = new mongoose.Schema({
     contactNumber: { type: String, required: true },
     freeTime: { type: String, required: true },
     sessionType: { type: String, enum: ["ONLINE", "PHYSICAL"], required: true },
+    meetingLink: { type: String },
     status: { type: String, enum: ["PENDING", "ACCEPTED", "REJECTED", "COMPLETED"], default: "PENDING" }
 }, { timestamps: true });
 

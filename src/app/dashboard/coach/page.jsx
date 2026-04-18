@@ -8,7 +8,7 @@ const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Dashboard" },
     { id: "Departments", icon: "🏸", label: "My Departments" },
     { id: "Schedule", icon: "📅", label: "Training Schedule" },
-    { id: "Exercise", icon: "💪", label: "Exercise Schedule" },
+    { id: "Exercise", icon: "🤝", label: "Consultations" },
     { id: "Achievements", icon: "🏆", label: "Achievements" },
 ];
 
@@ -28,6 +28,14 @@ export default function CoachDashboard() {
     const [achievementStatus, setAchievementStatus] = useState({ error: '', success: '' });
     const [isPending, startTransition] = useTransition();
     const [uploading, setUploading] = useState(false);
+    const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+
+    // Meeting Link Modal State
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [targetRequestId, setTargetRequestId] = useState(null);
+    const [targetRequestType, setTargetRequestType] = useState(null);
+    const [enteredMeetingLink, setEnteredMeetingLink] = useState("");
+    const [meetingLinkError, setMeetingLinkError] = useState("");
 
     useEffect(() => {
         const fetchSports = async () => {
@@ -175,21 +183,70 @@ export default function CoachDashboard() {
         }
     };
 
-    const handleUpdateRequestStatus = async (id, status, type) => {
+    const openMeetingLinkModal = (id, type) => {
+        setTargetRequestId(id);
+        setTargetRequestType(type);
+        setEnteredMeetingLink("");
+        setMeetingLinkError("");
+        setIsLinkModalOpen(true);
+    };
+
+    const handleApproveWithLink = async () => {
+        if (!enteredMeetingLink || !enteredMeetingLink.startsWith("http")) {
+            setMeetingLinkError("Please enter a valid meeting link starting with http:// or https://");
+            return;
+        }
+        setIsLinkModalOpen(false);
+        await handleUpdateRequestStatus(targetRequestId, "ACCEPTED", targetRequestType, "ONLINE", enteredMeetingLink);
+    };
+
+    const handleUpdateRequestStatus = async (id, status, type, category, providedLink = "") => {
+        let meetingLink = providedLink;
+
         try {
             const res = await fetch(`/api/user/exercise-requests`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, status, type })
+                body: JSON.stringify({ id, status, type, meetingLink })
             });
             if (res.ok) {
-                // If it was accepted/rejected, we remove from pending or update local state
-                setExerciseRequests(exerciseRequests.filter(req => req.id !== id));
+                if (status === "REJECTED") {
+                    setExerciseRequests(exerciseRequests.filter(req => req.id !== id));
+                } else {
+                    setExerciseRequests(exerciseRequests.map(req => req.id === id ? { ...req, status, meetingLink } : req));
+                }
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to update request");
             }
         } catch (err) {
             console.error(`Error updating request ${id}:`, err);
+            alert("An error occurred while updating the request.");
         }
     };
+
+    const handleDeleteApprovedRequest = async (id, type) => {
+        if (!confirm("Are you sure you want to remove this approved schedule?")) return;
+        try {
+            const res = await fetch(`/api/user/exercise-requests`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, type })
+            });
+            if (res.ok) {
+                setExerciseRequests(prev => prev.filter(req => req.id !== id));
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to delete schedule");
+            }
+        } catch (err) {
+            console.error("Error deleting approved request:", err);
+            alert("An error occurred while deleting.");
+        }
+    };
+
+    const pendingRequests = exerciseRequests.filter(req => req.status === "PENDING");
+    const approvedRequests = exerciseRequests.filter(req => req.status === "ACCEPTED");
 
     const uploadToCloudinary = async (base64Image) => {
         try {
@@ -264,10 +321,14 @@ export default function CoachDashboard() {
         try {
             const res = await fetch(`/api/user/achievements/${id}`, { method: "DELETE" });
             if (res.ok) {
-                setAchievements(achievements.filter(a => a.id !== id));
+                setAchievements(prev => prev.filter(a => a.id !== id));
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to delete achievement");
             }
         } catch (err) {
             console.error("Error deleting achievement:", err);
+            alert("An error occurred while deleting the achievement.");
         }
     };
 
@@ -327,19 +388,67 @@ export default function CoachDashboard() {
                 {/* Top Header */}
                 <header className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900">{activeTab}</h1>
+                        <h1 className="text-2xl font-black text-gray-900">{MENU_ITEMS.find(m => m.id === activeTab)?.label || activeTab}</h1>
                         <p className="text-xs text-gray-400 font-medium mt-1">
                             {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
-                        <button className="text-gray-400 hover:text-gray-900 transition-colors relative">
-                            🔔
-                            <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
+                    {/* Generate notifications on the fly from pending requests */}
+                    {(() => {
+                        const notifications = exerciseRequests
+                            .filter(req => req.status === "PENDING")
+                            .map(req => ({
+                                id: req.id,
+                                type: req.type || "CONSULTATION",
+                                title: "New Session Request",
+                                message: `${req.studentName} requested an ${req.type} session.`,
+                                time: req.createdAt
+                            }))
+                            .sort((a, b) => new Date(b.time) - new Date(a.time));
+
+                        return (
+                            <div className="flex items-center gap-6 relative">
+                                <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
+                                <button 
+                                    onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
+                                    className="text-gray-400 hover:text-gray-900 transition-colors relative"
+                                >
+                                    🔔
+                                    {notifications.length > 0 && (
+                                        <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>
+                                    )}
+                                </button>
+                                
+                                {/* Notification Panel */}
+                                {isNotificationPanelOpen && (
+                                    <div className="absolute top-10 right-[30%] w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                                        <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                                            <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Notifications</h4>
+                                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full uppercase">{notifications.length} New</span>
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-10 text-center">
+                                                    <div className="text-2xl mb-2">🎈</div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No new updates</p>
+                                                </div>
+                                            ) : (
+                                                notifications.map((notif) => (
+                                                    <div key={notif.id} className="p-5 border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">{notif.type}</span>
+                                                            <span className="text-[9px] font-bold text-gray-300 uppercase">{new Date(notif.time).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <h5 className="text-[11px] font-black text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors">{notif.title}</h5>
+                                                        <p className="text-[10px] text-gray-400 font-medium leading-relaxed italic">"{notif.message}"</p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
                             <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600">
                                 {session?.user?.name?.substring(0, 2).toUpperCase()}
                             </div>
@@ -349,6 +458,8 @@ export default function CoachDashboard() {
                             </div>
                         </div>
                     </div>
+                );
+            })()}
                 </header>
 
                 {/* Greeting Banner */}
@@ -489,61 +600,126 @@ export default function CoachDashboard() {
                     )}
 
                     {activeTab === "Exercise" && (
-                        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="flex justify-between items-center mb-10">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Incoming Requests</h3>
-                                    <p className="text-xs text-gray-400 font-medium">Manage student consultations and plan adjustments.</p>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Pending Requests Section */}
+                            <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center mb-10">
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Incoming Requests</h3>
+                                        <p className="text-xs text-gray-400 font-medium">Manage student consultations and plan adjustments.</p>
+                                    </div>
+                                    <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                        {pendingRequests.length} Pending
+                                    </div>
                                 </div>
-                                <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                                    {exerciseRequests.length} Pending
-                                </div>
-                             </div>
-
-                            {exerciseRequests.length === 0 ? (
-                                <div className="text-center py-24 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200">
-                                    <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📩</div>
-                                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Inbox is clear</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {exerciseRequests.map((req) => (
-                                        <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-emerald-100/20 transition-all border-l-4 border-l-emerald-600 group">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
-                                                        req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
-                                                    }`}>
-                                                        {req.type} • {req.category}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
-                                                </div>
-                                                <h4 className="text-lg font-black text-gray-900 mb-1">{req.studentName}</h4>
-                                                <p className="text-sm text-gray-500 font-medium leading-relaxed italic">"{req.detail}"</p>
-                                                <div className="flex items-center gap-4 mt-3">
-                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
-                                                        <span>📞</span> {req.contactNumber}
+                                {/* Pending requests mapping */}
+                                {pendingRequests.length === 0 ? (
+                                    <div className="text-center py-24 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200">
+                                        <div className="w-20 h-20 bg-emerald-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">📩</div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Inbox is clear</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {pendingRequests.map((req) => (
+                                            <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-emerald-100/20 transition-all border-l-4 border-l-emerald-600 group">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
+                                                            req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                        }`}>
+                                                            {req.type} • {req.category}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <h4 className="text-lg font-black text-gray-900 mb-1">{req.studentName}</h4>
+                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic">"{req.detail}"</p>
+                                                    <div className="flex items-center gap-4 mt-3">
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                                                            <span>📞</span> {req.contactNumber}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="flex gap-3">
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (req.category === "ONLINE") {
+                                                                openMeetingLinkModal(req.id, req.type);
+                                                            } else {
+                                                                handleUpdateRequestStatus(req.id, "ACCEPTED", req.type, req.category);
+                                                            }
+                                                        }}
+                                                        className="flex-1 lg:flex-none px-8 py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-gray-200"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleUpdateRequestStatus(req.id, "REJECTED", req.type, req.category)}
+                                                        className="flex-1 lg:flex-none px-8 py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
+                                                    >
+                                                        Decline
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-3">
-                                                <button 
-                                                    onClick={() => handleUpdateRequestStatus(req.id, "APPROVED", req.type)}
-                                                    className="flex-1 lg:flex-none px-8 py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-gray-200"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleUpdateRequestStatus(req.id, "REJECTED", req.type)}
-                                                    className="flex-1 lg:flex-none px-8 py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
-                                                >
-                                                    Decline
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Approved Schedules Section */}
+                            <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center mb-10">
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Approved Schedules</h3>
+                                        <p className="text-xs text-gray-400 font-medium">Your upcoming confirmed sessions and plans.</p>
+                                    </div>
+                                    <div className="bg-sky-50 text-sky-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-sky-100">
+                                        {approvedRequests.length} Approved
+                                    </div>
                                 </div>
-                            )}
+                                {/* Approved requests mapping */}
+                                {approvedRequests.length === 0 ? (
+                                    <div className="text-center py-24 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200">
+                                        <div className="w-20 h-20 bg-sky-50 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6">✅</div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No approved schedules yet</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {approvedRequests.map((req) => (
+                                            <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-sky-100/20 transition-all border-l-4 border-l-sky-500 group">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
+                                                            req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                        }`}>
+                                                            {req.type} • {req.category}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <h4 className="text-lg font-black text-gray-900 mb-1">{req.studentName}</h4>
+                                                    <p className="text-sm text-gray-500 font-medium leading-relaxed italic">"{req.detail}"</p>
+                                                    <div className="flex items-center gap-4 mt-3">
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                                                            <span>📞</span> {req.contactNumber}
+                                                        </div>
+                                                        {req.meetingLink && (
+                                                            <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 border border-emerald-100 bg-emerald-50 px-2 py-1 rounded-md">
+                                                                <span>🔗</span> <a href={req.meetingLink} target="_blank" rel="noreferrer" className="hover:underline">Join Session</a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteApprovedRequest(req.id, req.type)}
+                                                    className="px-5 py-2.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all border border-rose-100 shrink-0"
+                                                    title="Remove this schedule"
+                                                >
+                                                    🗑️ Remove
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -573,7 +749,8 @@ export default function CoachDashboard() {
                                                 <div className="absolute top-2 right-2 flex gap-2">
                                                     <button 
                                                         onClick={() => handleDeleteAchievement(ach.id)}
-                                                        className="w-8 h-8 rounded-full bg-white/90 text-rose-500 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center shadow-lg hover:bg-rose-500 hover:text-white transition-all text-sm border border-rose-200"
+                                                        title="Delete Achievement"
                                                     >
                                                         🗑️
                                                     </button>
@@ -710,13 +887,16 @@ export default function CoachDashboard() {
                 {/* Achievement Modal */}
                 {isAchievementModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-[32px] p-8 max-w-lg w-full shadow-2xl m-4 border border-gray-100 animate-in fade-in zoom-in duration-300">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-black text-gray-900">Publish Success</h3>
+                        <div className="bg-white rounded-[32px] p-10 max-w-3xl w-full shadow-2xl m-4 border border-gray-100 animate-in fade-in zoom-in duration-300">
+                            <div className="flex justify-between items-center mb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black text-gray-900">Publish Success</h3>
+                                    <p className="text-xs text-gray-400 font-medium mt-1">Share your team's achievement with the world.</p>
+                                </div>
                                 <button onClick={() => {
                                     setIsAchievementModalOpen(false);
                                     setAchievementStatus({ error: '', success: '' });
-                                }} className="text-gray-400 hover:text-gray-900 transition-colors">✕</button>
+                                }} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all">✕</button>
                             </div>
 
                             {achievementStatus.error && (
@@ -725,124 +905,165 @@ export default function CoachDashboard() {
                                 </div>
                             )}
 
-                            <form onSubmit={handleCreateAchievement} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sport Department</label>
-                                            {achievementErrors.sportName && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.sportName}</span>}
-                                        </div>
-                                        <select 
-                                            required
-                                            name="sportName"
-                                            value={achievementData.sportName}
-                                            onChange={handleAchievementInputChange}
-                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                                achievementErrors.sportName ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                            }`}
-                                        >
-                                            <option value="">Select Sport</option>
-                                            {sports.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date Achieved</label>
-                                            {achievementErrors.date && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.date}</span>}
-                                        </div>
-                                        <input 
-                                            type="date" required
-                                            name="date"
-                                            value={achievementData.date}
-                                            onChange={handleAchievementInputChange}
-                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                                achievementErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                            }`} 
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Achievement Title</label>
-                                        {achievementErrors.title && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.title}</span>}
-                                    </div>
-                                    <input 
-                                        type="text" required
-                                        name="title"
-                                        placeholder="e.g. SLUG 2026 Gold Medal"
-                                        value={achievementData.title}
-                                        onChange={handleAchievementInputChange}
-                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                            achievementErrors.title ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                        }`} 
-                                    />
-                                </div>
-                                <div className="flex flex-col">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Short Description</label>
-                                        {achievementErrors.description && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.description}</span>}
-                                    </div>
-                                    <textarea 
-                                        required rows={3}
-                                        name="description"
-                                        placeholder="Tell us more about this win..."
-                                        value={achievementData.description}
-                                        onChange={handleAchievementInputChange}
-                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all resize-none ${
-                                            achievementErrors.description ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                        }`} 
-                                    />
-                                </div>
-                                <div className="flex flex-col">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trophy / Team Photo</label>
-                                        {achievementErrors.image && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.image}</span>}
-                                    </div>
-                                    <div className={`relative h-32 w-full bg-gray-50 rounded-[20px] border-2 border-dashed flex items-center justify-center overflow-hidden hover:border-emerald-200 transition-all ${
-                                        achievementErrors.image ? "border-rose-200 ring-2 ring-rose-500/20 bg-rose-50/10" : "border-gray-100"
-                                    }`}>
-                                        {achievementData.image ? (
-                                            <img src={achievementData.image} className="w-full h-full object-cover" alt="Preview" />
-                                        ) : (
-                                            <div className="text-center">
-                                                <div className="text-2xl">📸</div>
-                                                <span className="text-[9px] font-black text-gray-400 uppercase">Upload Media</span>
+                            <form onSubmit={handleCreateAchievement}>
+                                {/* Two-column horizontal layout */}
+                                <div className="grid grid-cols-2 gap-8">
+                                    {/* Left column — text fields */}
+                                    <div className="space-y-4">
+                                        {/* Sport + Date row */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex flex-col">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sport Department</label>
+                                                    {achievementErrors.sportName && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.sportName}</span>}
+                                                </div>
+                                                <select
+                                                    required
+                                                    name="sportName"
+                                                    value={achievementData.sportName}
+                                                    onChange={handleAchievementInputChange}
+                                                    className={`w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-gray-900 outline-none transition-all ${achievementErrors.sportName ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"}`}
+                                                >
+                                                    <option value="">Select Sport</option>
+                                                    {sports.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                                </select>
                                             </div>
-                                        )}
-                                        <input 
-                                            type="file" required accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => {
-                                                        setAchievementData({...achievementData, image: reader.result});
-                                                        setAchievementErrors(prev => ({ ...prev, image: "" }));
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
-                                            className="absolute inset-0 opacity-0 cursor-pointer" 
-                                        />
+                                            <div className="flex flex-col">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date Achieved</label>
+                                                    {achievementErrors.date && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.date}</span>}
+                                                </div>
+                                                <input
+                                                    type="date" required
+                                                    name="date"
+                                                    value={achievementData.date}
+                                                    onChange={handleAchievementInputChange}
+                                                    className={`w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-gray-900 outline-none transition-all ${achievementErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"}`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Title */}
+                                        <div className="flex flex-col">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Achievement Title</label>
+                                                {achievementErrors.title && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.title}</span>}
+                                            </div>
+                                            <input
+                                                type="text" required
+                                                name="title"
+                                                placeholder="e.g. SLUG 2026 Gold Medal"
+                                                value={achievementData.title}
+                                                onChange={handleAchievementInputChange}
+                                                className={`w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-gray-900 outline-none transition-all ${achievementErrors.title ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"}`}
+                                            />
+                                        </div>
+
+                                        {/* Description */}
+                                        <div className="flex flex-col flex-1">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Short Description</label>
+                                                {achievementErrors.description && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.description}</span>}
+                                            </div>
+                                            <textarea
+                                                required rows={5}
+                                                name="description"
+                                                placeholder="Tell us more about this win..."
+                                                value={achievementData.description}
+                                                onChange={handleAchievementInputChange}
+                                                className={`w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold text-gray-900 outline-none transition-all resize-none ${achievementErrors.description ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"}`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Right column — image upload */}
+                                    <div className="flex flex-col">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trophy / Team Photo</label>
+                                            {achievementErrors.image && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {achievementErrors.image}</span>}
+                                        </div>
+                                        <div className={`relative flex-1 min-h-[220px] bg-gray-50 rounded-[20px] border-2 border-dashed flex items-center justify-center overflow-hidden hover:border-emerald-300 transition-all cursor-pointer ${achievementErrors.image ? "border-rose-200 ring-2 ring-rose-500/20 bg-rose-50/10" : "border-gray-200"}`}>
+                                            {achievementData.image ? (
+                                                <>
+                                                    <img src={achievementData.image} className="w-full h-full object-cover" alt="Preview" />
+                                                    <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-sm text-[9px] font-black text-gray-600 uppercase px-2 py-1 rounded-lg">Click to change</div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center p-6">
+                                                    <div className="text-4xl mb-3">📸</div>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Upload Media</span>
+                                                    <span className="text-[9px] font-medium text-gray-300 mt-1 block">PNG, JPG, WEBP supported</span>
+                                                </div>
+                                            )}
+                                            <input
+                                                type="file" required accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setAchievementData({...achievementData, image: reader.result});
+                                                            setAchievementErrors(prev => ({ ...prev, image: "" }));
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex gap-4 pt-4 mt-8 border-t border-gray-50">
-                                    <button 
-                                        type="button" 
+                                {/* Buttons */}
+                                <div className="flex gap-4 pt-6 mt-6 border-t border-gray-50">
+                                    <button
+                                        type="button"
                                         onClick={() => setIsAchievementModalOpen(false)}
-                                        className="flex-1 py-4 rounded-2xl font-bold text-sm text-gray-400 hover:bg-gray-50 transition-all">
+                                        className="flex-1 py-4 rounded-2xl font-bold text-sm text-gray-400 hover:bg-gray-50 transition-all"
+                                    >
                                         Back
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         disabled={uploading}
-                                        className="flex-[2] bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                        className="flex-[3] bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
                                     >
                                         {uploading ? "Publishing Media..." : "Share Achievement"}
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Meeting Link Modal */}
+                {isLinkModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Meeting Link</h2>
+                                <button onClick={() => setIsLinkModalOpen(false)} className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-all">✕</button>
+                            </div>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Enter online session link</label>
+                                    <input 
+                                        type="url" 
+                                        placeholder="https://meet.google.com/..." 
+                                        value={enteredMeetingLink} 
+                                        onChange={(e) => setEnteredMeetingLink(e.target.value)} 
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${meetingLinkError ? 'ring-2 ring-rose-500' : 'ring-indigo-50'}`}
+                                        autoFocus
+                                    />
+                                    {meetingLinkError && <p className="mt-2 text-[10px] font-bold text-rose-500">{meetingLinkError}</p>}
+                                </div>
+                                <button
+                                    onClick={handleApproveWithLink}
+                                    className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                                >
+                                    Approve Session
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

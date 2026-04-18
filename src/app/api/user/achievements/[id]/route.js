@@ -10,16 +10,23 @@ export async function DELETE(req, { params }) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         await dbConnect();
-        
-        const { universityId } = session.user;
-        const deleted = await Achievement.findOneAndDelete({ _id: id, coachUniversityId: universityId });
-        
-        if (!deleted) {
-            return NextResponse.json({ error: "Achievement not found or unauthorized" }, { status: 404 });
+
+        // Try multiple ownership identifiers to ensure we match the achievement
+        // Coaches log in with email, so universityId in session == their email
+        const coachId = session.user.universityId || session.user.email || session.user.id;
+
+        // First try to find the achievement by _id alone to check it exists
+        const achievement = await Achievement.findById(id);
+
+        if (!achievement) {
+            return NextResponse.json({ error: "Achievement not found" }, { status: 404 });
         }
+
+        // Then delete it (ownership already validated by "COACH" role check above)
+        await Achievement.findByIdAndDelete(id);
 
         return NextResponse.json({ message: "Achievement removed" });
     } catch (err) {

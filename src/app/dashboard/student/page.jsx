@@ -8,15 +8,14 @@ const MENU_ITEMS = [
     { id: "Overview", icon: "📊", label: "Dashboard" },
     { id: "Explore", icon: "🔍", label: "Explore Sports" },
     { id: "Bookings", icon: "🏸", label: "Bookings" },
-    { id: "Applications", icon: "📝", label: "My Applications" },
 ];
 
 const APPROVED_MENU_ITEMS = [
-    { id: "Exercise", icon: "💪", label: "Exercise Plan" },
     { id: "Diet", icon: "🥗", label: "Meal Plan" },
+    { id: "Consultations", icon: "🤝", label: "Consultations" },
 ];
 
-const SETTINGS_MENU_ITEM = { id: "Settings", icon: "⚙️", label: "Settings" };
+
 
 export default function StudentDashboard() {
     const { data: session } = useSession();
@@ -24,6 +23,8 @@ export default function StudentDashboard() {
     const [sports, setSports] = useState([]);
     const [joinedSports, setJoinedSports] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [courtBookings, setCourtBookings] = useState([]);
+    const [bookingSubTab, setBookingSubTab] = useState("equipment");
     const [coaches, setCoaches] = useState([]);
     const [trainingSchedules, setTrainingSchedules] = useState([]);
     const [exerciseRequests, setExerciseRequests] = useState([]);
@@ -37,12 +38,17 @@ export default function StudentDashboard() {
     const [exerciseFormData, setExerciseFormData] = useState({
         coachId: "",
         contactNumber: "",
-        freeTime: "",
+        preferredDate: "",
+        preferredTime: "",
         sessionType: ""
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isScheduling, setIsScheduling] = useState(false);
     const [errors, setErrors] = useState({});
+
+    const [aiPlan, setAiPlan] = useState(null);
+    const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+    const [planForm, setPlanForm] = useState({ age: "", weight: "", height: "", requirements: "" });
 
     const validateExerciseField = (name, value) => {
         let error = "";
@@ -50,9 +56,11 @@ export default function StudentDashboard() {
             if (!value) error = "Contact number is required.";
             else if (!/^\+?[0-9\s-]{8,15}$/.test(value)) error = "Invalid phone number format (8-15 digits).";
         }
-        if (name === "freeTime") {
-            if (!value) error = "Free time is required.";
-            else if (value.length < 5) error = "Please provide more details (e.g. Day and Time).";
+        if (name === "preferredDate") {
+            if (!value) error = "Preferred date is required.";
+        }
+        if (name === "preferredTime") {
+            if (!value) error = "Preferred time is required.";
         }
         if (name === "coachId" && !value) error = "Please select a coach.";
         if (name === "sessionType" && !value) error = "Please select a session type.";
@@ -98,9 +106,11 @@ export default function StudentDashboard() {
                     fetch("/api/student/coaches"),
                     fetch("/api/student/bookings"),
                     fetch("/api/student/training-schedules"),
-                    fetch("/api/student/notifications")
+                    fetch("/api/student/notifications"),
+                    fetch("/api/student/court-bookings"),
+                    fetch("/api/student/ai-meal-plan")
                 ]);
-                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes] = responses;
+                const [sportsRes, meRes, coachesRes, bookingsRes, schedulesRes, notificationsRes, courtBookingsRes, aiPlanRes] = responses;
                 if (sportsRes.ok) {
                     const data = await sportsRes.json();
                     setSports(data);
@@ -121,10 +131,19 @@ export default function StudentDashboard() {
                     const schedulesData = await schedulesRes.json();
                     setTrainingSchedules(schedulesData || []);
                 }
-                const notificationsRes = responses[5];
                 if (notificationsRes && notificationsRes.ok) {
                     const notifyData = await notificationsRes.json();
                     setNotifications(notifyData);
+                }
+                if (courtBookingsRes && courtBookingsRes.ok) {
+                    const courtData = await courtBookingsRes.json();
+                    setCourtBookings(courtData || []);
+                }
+                if (aiPlanRes && aiPlanRes.ok) {
+                    const planData = await aiPlanRes.json();
+                    if (planData.mealPlan) {
+                        setAiPlan(planData.mealPlan);
+                    }
                 }
                 const exerciseRequestsRes = await fetch("/api/student/schedule-exercise");
                 if (exerciseRequestsRes.ok) {
@@ -187,28 +206,34 @@ export default function StudentDashboard() {
         let isValid = true;
         isValid = validateExerciseField("contactNumber", exerciseFormData.contactNumber) && isValid;
         isValid = validateExerciseField("coachId", exerciseFormData.coachId) && isValid;
-        isValid = validateExerciseField("freeTime", exerciseFormData.freeTime) && isValid;
+        isValid = validateExerciseField("preferredDate", exerciseFormData.preferredDate) && isValid;
+        isValid = validateExerciseField("preferredTime", exerciseFormData.preferredTime) && isValid;
         isValid = validateExerciseField("sessionType", exerciseFormData.sessionType) && isValid;
 
         if (!isValid) return;
+
+        const payload = {
+            ...exerciseFormData,
+            freeTime: `${exerciseFormData.preferredDate} at ${exerciseFormData.preferredTime}`
+        };
 
         setIsScheduling(true);
         try {
             const res = await fetch("/api/student/schedule-exercise", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(exerciseFormData)
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 alert("Exercise session scheduled successfully! Waiting for coach approval.");
-                setExerciseFormData({ coachId: "", contactNumber: "", freeTime: "", sessionType: "" });
+                setExerciseFormData({ coachId: "", contactNumber: "", preferredDate: "", preferredTime: "", sessionType: "" });
                 // Refresh exercise requests
                 const reqRes = await fetch("/api/student/schedule-exercise");
                 if (reqRes.ok) {
                     const reqData = await reqRes.json();
                     setExerciseRequests(reqData);
                 }
-                setActiveTab("Exercise");
+                setActiveTab("Consultations");
             } else {
                 const data = await res.json();
                 setErrors({ ...errors, scheduleSubmit: data.error || "Failed to schedule exercise" });
@@ -230,13 +255,8 @@ export default function StudentDashboard() {
             });
             
             if (res.ok) {
-                alert("Booking canceled successfully!");
-                // Refresh bookings list
-                const bookingsRes = await fetch("/api/student/bookings");
-                if (bookingsRes.ok) {
-                    const bookingsData = await bookingsRes.json();
-                    setBookings(bookingsData);
-                }
+                // Instantly remove from list
+                setBookings(prev => prev.filter(b => b._id !== bookingId));
             } else {
                 const data = await res.json();
                 alert(data.error || "Failed to cancel booking");
@@ -244,6 +264,72 @@ export default function StudentDashboard() {
         } catch (err) {
             console.error(err);
             alert("An error occurred while canceling the booking.");
+        }
+    };
+
+    const handleCancelCourtBooking = async (bookingId) => {
+        if (!confirm("Are you sure you want to cancel this court booking?")) return;
+        try {
+            const res = await fetch(`/api/student/court-bookings/${bookingId}`, {
+                method: "PATCH"
+            });
+            if (res.ok) {
+                // Instantly remove from list
+                setCourtBookings(prev => prev.filter(b => b._id !== bookingId));
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to cancel court booking");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while cancelling the court booking.");
+        }
+    };
+
+    const handleGenerateAIPlan = async (e) => {
+        e.preventDefault();
+        if (!planForm.age || !planForm.weight || !planForm.height || !planForm.requirements) {
+            alert("Please fill all fields.");
+            return;
+        }
+        setIsGeneratingPlan(true);
+        try {
+            const res = await fetch("/api/student/ai-meal-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    details: `Age: ${planForm.age}, Weight: ${planForm.weight}kg, Height: ${planForm.height}cm`,
+                    requirements: planForm.requirements
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAiPlan(data.mealPlan);
+            } else {
+                const errorData = await res.json();
+                alert(errorData.error || "Failed to generate AI plan");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Something went wrong");
+        } finally {
+            setIsGeneratingPlan(false);
+        }
+    };
+
+    const handleAddWater = async () => {
+        try {
+            const res = await fetch("/api/student/ai-meal-plan", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ amount: 0.25 })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAiPlan(data.mealPlan);
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -303,18 +389,7 @@ export default function StudentDashboard() {
                         </>
                     )}
 
-                    <div className="mt-2">
-                        <button
-                            onClick={() => setActiveTab(SETTINGS_MENU_ITEM.id)}
-                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeTab === SETTINGS_MENU_ITEM.id
-                                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                                }`}
-                        >
-                            <span className="text-lg">{SETTINGS_MENU_ITEM.icon}</span>
-                            {SETTINGS_MENU_ITEM.label}
-                        </button>
-                    </div>
+
 
                     {joinedSports.length > 0 && (
                         <div className="pt-6 mt-6 border-t border-gray-100 pb-10">
@@ -529,77 +604,179 @@ export default function StudentDashboard() {
 
                     {activeTab === "Bookings" && (
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-900">My Equipment Rentals</h3>
-                                    <p className="text-gray-400 text-sm font-medium">Track your active bookings and access QR codes for collection/return.</p>
-                                </div>
+                            {/* Sub-tab Navigation */}
+                            <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit">
+                                <button
+                                    onClick={() => setBookingSubTab("equipment")}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        bookingSubTab === "equipment"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900"
+                                    }`}
+                                >
+                                    🏸 Equipment Rentals
+                                </button>
+                                <button
+                                    onClick={() => setBookingSubTab("court")}
+                                    className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                        bookingSubTab === "court"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900"
+                                    }`}
+                                >
+                                    🏟️ Court Bookings
+                                    {courtBookings.filter(b => b.status !== "CANCELLED").length > 0 && (
+                                        <span className="ml-2 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                            {courtBookings.filter(b => b.status !== "CANCELLED").length}
+                                        </span>
+                                    )}
+                                </button>
                             </div>
 
-                            {bookings.length === 0 ? (
-                                <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
-                                    <div className="text-6xl mb-6">📦</div>
-                                    <h3 className="text-2xl font-black text-gray-900 mb-2">No Bookings Yet</h3>
-                                    <p className="text-gray-500 mb-8 max-w-sm mx-auto">Explore university sports and book equipment to see them here.</p>
-                                    <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                                        Browse Sports
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {bookings.map((booking) => (
-                                        <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                                            
-                                            <div className="flex justify-between items-start mb-6 relative z-10">
-                                                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                                                    {booking.equipmentName.toLowerCase().includes("ball") ? "⚽" : "🏸"}
-                                                </div>
-                                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
-                                                    booking.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    booking.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                    'bg-gray-50 text-gray-400 border-gray-100'
-                                                }`}>
-                                                    {booking.status}
-                                                </span>
-                                            </div>
-
-                                            <div className="relative z-10">
-                                                <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.equipmentName}</h4>
-                                                <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-8">{booking.sportName}</p>
-                                                
-                                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Quantity</div>
-                                                        <div className="text-lg font-black text-gray-900">{booking.quantity} Units</div>
-                                                    </div>
-                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
-                                                        <div className="text-sm font-black text-gray-900">{new Date(booking.bookingDate).toLocaleDateString()}</div>
-                                                    </div>
-                                                </div>
-
-                                                {booking.qrCode && (
-                                                    <button 
-                                                        onClick={() => setSelectedBooking(booking)}
-                                                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
-                                                    >
-                                                        Show QR Code
-                                                    </button>
-                                                )}
-
-                                                {(booking.status === "PENDING" || booking.status === "ACTIVE") && (
-                                                    <button 
-                                                        onClick={() => handleCancelBooking(booking._id)}
-                                                        className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
-                                                    >
-                                                        Cancel Booking
-                                                    </button>
-                                                )}
-                                            </div>
+                            {/* Equipment Rentals */}
+                            {bookingSubTab === "equipment" && (
+                                <>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">My Equipment Rentals</h3>
+                                        <p className="text-gray-400 text-sm font-medium">Track your active bookings and access QR codes for collection/return.</p>
+                                    </div>
+                                    {bookings.length === 0 ? (
+                                        <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
+                                            <div className="text-6xl mb-6">📦</div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2">No Equipment Bookings Yet</h3>
+                                            <p className="text-gray-500 mb-8 max-w-sm mx-auto">Explore university sports and book equipment to see them here.</p>
+                                            <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                                Browse Sports
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {bookings.map((booking) => (
+                                                <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                                                    <div className="flex justify-between items-start mb-6 relative z-10">
+                                                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                                            {booking.equipmentName.toLowerCase().includes("ball") ? "⚽" : "🏸"}
+                                                        </div>
+                                                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                                                            booking.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            booking.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                            'bg-gray-50 text-gray-400 border-gray-100'
+                                                        }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="relative z-10">
+                                                        <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.equipmentName}</h4>
+                                                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-8">{booking.sportName}</p>
+                                                        <div className="grid grid-cols-2 gap-4 mb-8">
+                                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Quantity</div>
+                                                                <div className="text-lg font-black text-gray-900">{booking.quantity} Units</div>
+                                                            </div>
+                                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                                <div className="text-sm font-black text-gray-900">{new Date(booking.bookingDate).toLocaleDateString()}</div>
+                                                            </div>
+                                                        </div>
+                                                        {booking.qrCode && (
+                                                            <button
+                                                                onClick={() => setSelectedBooking(booking)}
+                                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
+                                                            >
+                                                                Show QR Code
+                                                            </button>
+                                                        )}
+                                                        {(booking.status === "PENDING" || booking.status === "ACTIVE") && (
+                                                            <button
+                                                                onClick={() => handleCancelBooking(booking._id)}
+                                                                className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                                            >
+                                                                Cancel Booking
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Court Bookings */}
+                            {bookingSubTab === "court" && (
+                                <>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900">My Court Bookings</h3>
+                                        <p className="text-gray-400 text-sm font-medium">View and manage your court reservations.</p>
+                                    </div>
+                                    {courtBookings.length === 0 ? (
+                                        <div className="bg-white p-20 rounded-[40px] text-center border-2 border-dashed border-gray-100">
+                                            <div className="text-6xl mb-6">🏟️</div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2">No Court Bookings Yet</h3>
+                                            <p className="text-gray-500 mb-8 max-w-sm mx-auto">Visit a sport page and reserve a court to see your bookings here.</p>
+                                            <button onClick={() => setActiveTab("Explore")} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                                Find a Sport
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                            {courtBookings.map((booking) => (
+                                                <div key={booking._id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all group relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+                                                    {/* Status Badge */}
+                                                    <div className="flex justify-between items-start mb-6 relative z-10">
+                                                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">🏟️</div>
+                                                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                                                            booking.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                            booking.status === 'PENDING'   ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                            'bg-gray-50 text-gray-400 border-gray-100'
+                                                        }`}>
+                                                            {booking.status}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="relative z-10">
+                                                        <h4 className="text-2xl font-black text-gray-900 mb-1 leading-tight uppercase tracking-tight">{booking.sportName}</h4>
+                                                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-6">{booking.courtLocation}</p>
+
+                                                        <div className="grid grid-cols-2 gap-3 mb-6">
+                                                            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Date</div>
+                                                                <div className="text-sm font-black text-gray-900">{booking.bookingDate}</div>
+                                                            </div>
+                                                            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100 group-hover:bg-white group-hover:border-indigo-100 transition-colors">
+                                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Time</div>
+                                                                <div className="text-sm font-black text-gray-900">{booking.timeSlot}</div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* QR Code Button */}
+                                                        {booking.qrCode && (
+                                                            <button
+                                                                onClick={() => setSelectedBooking({ ...booking, isCourtBooking: true })}
+                                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl active:scale-95 mb-3"
+                                                            >
+                                                                📱 Show QR Code
+                                                            </button>
+                                                        )}
+
+                                                        {/* Cancel Button */}
+                                                        {booking.status !== "CANCELLED" && (
+                                                            <button
+                                                                onClick={() => handleCancelCourtBooking(booking._id)}
+                                                                className="w-full bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95"
+                                                            >
+                                                                Cancel Booking
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -650,71 +827,24 @@ export default function StudentDashboard() {
                         </div>
                     )}
 
-                    {activeTab === "Exercise" && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
-                            <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
-                                <div className="flex justify-between items-center mb-10">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-xl">🏆</div>
-                                        <div>
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">UPCOMING SESSIONS</h3>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Live Timeline • Updated Weekly</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setActiveTab("Schedule Exercise")}
-                                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100/50"
-                                    >
-                                        Schedule Consultation
-                                    </button>
-                                </div>
-                                <div className="space-y-5">
-                                    {trainingSchedules.length === 0 ? (
-                                        <div className="py-24 text-center bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-100 flex flex-col items-center gap-6">
-                                            <div className="text-6xl grayscale opacity-30">🏟️</div>
-                                            <div className="max-w-xs">
-                                                <h4 className="text-lg font-black text-gray-900 tracking-tight mb-2">No Sessions Assigned</h4>
-                                                <p className="text-xs text-gray-400 font-medium leading-relaxed">Your professional team training times and workout schedules from coaches will appear here.</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        trainingSchedules.map((item, idx) => (
-                                            <div key={idx} className={`flex items-center justify-between p-7 rounded-[32px] border transition-all bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-100/20 group`}>
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-[20px] bg-white shadow-sm border border-gray-50 flex flex-col items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:scale-105">
-                                                        <span className="text-[10px] uppercase opacity-60 leading-none mb-1.5">{item.date.split('-')[2] || "DAY"}</span>
-                                                        <span className="text-lg leading-none">{item.date.split('-')[1] || "—"}</span>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-base font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight mb-1">{item.activity}</div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50 uppercase tracking-widest">{item.sportName}</span>
-                                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold">
-                                                                <span>🕒</span>
-                                                                {item.time}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right hidden md:block">
-                                                    <div className="text-xs font-black text-gray-900 underline decoration-indigo-200 underline-offset-4 mb-1">{item.location}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center justify-end gap-1">
-                                                       <span>📍</span> Venue
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                             </section>
- 
+
+                    {activeTab === "Consultations" && (
+                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
                              <section className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-gray-100">
-                                 <div className="flex items-center gap-4 mb-10">
-                                     <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl">🤝</div>
-                                     <div>
-                                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">COACHING SESSIONS</h3>
-                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requested & Approved consultations</p>
+                                 <div className="flex justify-between items-center mb-10">
+                                     <div className="flex items-center gap-4">
+                                         <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl">🤝</div>
+                                         <div>
+                                             <h3 className="text-2xl font-black text-gray-900 tracking-tight">COACHING SESSIONS</h3>
+                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Requested & Approved consultations</p>
+                                         </div>
                                      </div>
+                                     <button 
+                                         onClick={() => setActiveTab("Schedule Exercise")}
+                                         className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100/50"
+                                     >
+                                         Schedule Consultation
+                                     </button>
                                  </div>
  
                                  <div className="space-y-4">
@@ -725,10 +855,10 @@ export default function StudentDashboard() {
                                          </div>
                                      ) : (
                                          exerciseRequests.map((req, idx) => (
-                                             <div key={req._id || idx} className="flex items-center justify-between p-6 rounded-[28px] bg-gray-50/50 border border-gray-100 group hover:bg-white hover:shadow-lg transition-all">
+                                             <div key={req._id || idx} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-[28px] bg-gray-50/50 border border-gray-100 group hover:bg-white hover:shadow-lg transition-all gap-4">
                                                  <div className="flex items-center gap-5">
                                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-sm ${
-                                                         req.status === 'APPROVED' ? 'bg-emerald-600 text-white' : 
+                                                         req.status === 'ACCEPTED' ? 'bg-emerald-600 text-white' : 
                                                          req.status === 'REJECTED' ? 'bg-rose-600 text-white' : 
                                                          'bg-indigo-600 text-white'
                                                      }`}>
@@ -742,16 +872,28 @@ export default function StudentDashboard() {
                                                              <span className="text-[9px] font-black uppercase text-gray-400">🕒 {req.freeTime}</span>
                                                              <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
                                                              <span className={`text-[9px] font-black uppercase ${
-                                                                 req.status === 'APPROVED' ? 'text-emerald-500' : 
+                                                                 req.status === 'ACCEPTED' ? 'text-emerald-500' : 
                                                                  req.status === 'REJECTED' ? 'text-rose-500' : 
                                                                  'text-amber-500'
                                                              }`}>{req.status}</span>
                                                          </div>
                                                      </div>
                                                  </div>
-                                                 <div className="text-right">
-                                                     <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1.5">Session Type</div>
-                                                     <div className="text-[10px] font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100">{req.sessionType}</div>
+                                                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                                                     {req.sessionType === 'ONLINE' && req.status === 'ACCEPTED' && req.meetingLink && (
+                                                         <a 
+                                                             href={req.meetingLink} 
+                                                             target="_blank" 
+                                                             rel="noopener noreferrer" 
+                                                             className="bg-sky-50 text-sky-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-sky-100 hover:bg-sky-100 transition-colors"
+                                                         >
+                                                             Join Session
+                                                         </a>
+                                                     )}
+                                                     <div className="text-right">
+                                                         <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1.5">Session Type</div>
+                                                         <div className="text-[10px] font-bold text-gray-900 bg-white px-3 py-1 rounded-full border border-gray-100">{req.sessionType}</div>
+                                                     </div>
                                                  </div>
                                              </div>
                                          ))
@@ -771,7 +913,7 @@ export default function StudentDashboard() {
                                         <p className="text-gray-400 text-sm font-medium">Book a guided session with your team coach.</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setActiveTab("Exercise")} className="text-indigo-600 font-bold text-xs hover:underline">← Back to Plan</button>
+                                <button onClick={() => setActiveTab("Consultations")} className="text-indigo-600 font-bold text-xs hover:underline">← Back to Consultations</button>
                             </div>
 
                             <form onSubmit={handleScheduleExercise} className="space-y-6">
@@ -815,18 +957,34 @@ export default function StudentDashboard() {
  
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                      <div>
-                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Free Time</label>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Date</label>
+                                        <input 
+                                            type="date"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            value={exerciseFormData.preferredDate} 
+                                            onChange={(e) => {
+                                                setExerciseFormData({...exerciseFormData, preferredDate: e.target.value});
+                                                validateExerciseField("preferredDate", e.target.value);
+                                            }} 
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.preferredDate ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                        />
+                                        {errors.preferredDate && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.preferredDate}</p>}
+                                    </div>
+                                     <div>
+                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Preferred Time</label>
                                          <input 
-                                             type="text" placeholder="e.g. Wednesday 4:00 PM" 
-                                             value={exerciseFormData.freeTime} 
+                                             type="time" 
+                                             value={exerciseFormData.preferredTime} 
                                              onChange={(e) => {
-                                                 setExerciseFormData({...exerciseFormData, freeTime: e.target.value});
-                                                 validateExerciseField("freeTime", e.target.value);
+                                                 setExerciseFormData({...exerciseFormData, preferredTime: e.target.value});
+                                                 validateExerciseField("preferredTime", e.target.value);
                                              }} 
-                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.freeTime ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
+                                             className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${errors.preferredTime ? "ring-2 ring-rose-500" : "ring-indigo-50"}`} 
                                          />
-                                         {errors.freeTime && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.freeTime}</p>}
+                                         {errors.preferredTime && <p className="mt-2 text-[10px] font-bold text-rose-500 animate-in slide-in-from-top-1">{errors.preferredTime}</p>}
                                      </div>
+                                 </div>
+                                 <div className="grid grid-cols-1 gap-6 mt-6">
                                      <div>
                                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Session Type</label>
                                          <select 
@@ -854,68 +1012,122 @@ export default function StudentDashboard() {
 
                     {activeTab === "Diet" && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <section className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <h3 className="text-xl font-black text-gray-900 tracking-tight">NUTRITION PLAN</h3>
-                                        <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Bulking Season</span>
-                                    </div>
-                                    
-                                    <div className="space-y-6">
-                                        {[
-                                            { meal: "Breakfast", items: "Oatmeal with berries, 3 Egg Whites", time: "08:00 AM", cal: "450" },
-                                            { meal: "Lunch", items: "Grilled Chicken Breast, Quinoa, Salad", time: "01:00 PM", cal: "650" },
-                                            { meal: "Pre-Workout", items: "Banana and Greek Yogurt", time: "04:30 PM", cal: "220" },
-                                            { meal: "Dinner", items: "Steamed Fish, Sweet Potato, Broccoli", time: "08:00 PM", cal: "510" },
-                                        ].map((item, idx) => (
-                                            <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
-                                                <div>
-                                                    <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">{item.meal} • {item.time}</div>
-                                                    <div className="text-sm font-bold text-gray-900">{item.items}</div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-lg font-black text-gray-900">{item.cal}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">KCAL</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                <div className="space-y-8">
-                                    <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
-                                        <div className="relative z-10">
-                                            <h4 className="text-[10px] font-black text-gray-400 uppercase mb-6 tracking-widest">Hydration Tracker</h4>
-                                            <div className="flex items-end justify-center gap-2 mb-6">
-                                                <div className="text-5xl font-black text-sky-600">2.4</div>
-                                                <div className="text-xs font-black text-gray-300 mb-2 uppercase">Liters / 3.5L</div>
-                                            </div>
-                                            <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden mb-8">
-                                                <div className="bg-sky-500 h-full w-[68%]"></div>
-                                            </div>
-                                            <button className="w-full py-4 bg-sky-50 text-sky-600 rounded-2xl text-[10px] font-black uppercase hover:bg-sky-100 transition-all border border-sky-100">Add 250ml</button>
+                            {!aiPlan ? (
+                                <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 max-w-2xl mx-auto">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl">🥗</div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-gray-900">Generate Your Meal Plan</h3>
+                                            <p className="text-gray-400 text-sm font-medium">Let AI craft your custom nutritional guidelines for today.</p>
                                         </div>
-                                    </section>
+                                    </div>
 
-                                    <section className="bg-emerald-600 text-white p-8 rounded-[32px] shadow-xl">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-4">Daily Balance</h4>
-                                        <div className="grid grid-cols-3 gap-2 text-center">
+                                    <form onSubmit={handleGenerateAIPlan} className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div>
-                                                <div className="text-lg font-black">180g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Protein</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Age (Years)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 22" 
+                                                    value={planForm.age}
+                                                    onChange={e => setPlanForm({ ...planForm, age: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                             <div>
-                                                <div className="text-lg font-black">240g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Carbs</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Weight (kg)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 75" 
+                                                    value={planForm.weight}
+                                                    onChange={e => setPlanForm({ ...planForm, weight: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                             <div>
-                                                <div className="text-lg font-black">65g</div>
-                                                <div className="text-[8px] font-bold uppercase text-emerald-200">Fats</div>
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Height (cm)</label>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="e.g. 180" 
+                                                    value={planForm.height}
+                                                    onChange={e => setPlanForm({ ...planForm, height: e.target.value })}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50"
+                                                />
                                             </div>
                                         </div>
-                                    </section>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Your Requirement (Goal & Preferences)</label>
+                                            <textarea 
+                                                placeholder="e.g., Bulking, vegetarian, high protein" 
+                                                value={planForm.requirements}
+                                                onChange={e => setPlanForm({ ...planForm, requirements: e.target.value })}
+                                                className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 ring-indigo-50 min-h-[100px] resize-none"
+                                            ></textarea>
+                                        </div>
+                                        <button disabled={isGeneratingPlan} type="submit" className="w-full bg-emerald-600 text-white py-4 mt-4 rounded-2xl font-bold text-sm tracking-tight hover:bg-emerald-700 transition-all disabled:opacity-50 shadow-lg shadow-emerald-100">
+                                            {isGeneratingPlan ? "Generating with AI..." : "Generate Today's Plan"}
+                                        </button>
+                                    </form>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <section className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
+                                        <div className="flex justify-between items-center mb-8">
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">NUTRITION PLAN</h3>
+                                            <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{aiPlan.goal}</span>
+                                        </div>
+                                        
+                                        <div className="space-y-6">
+                                            {aiPlan.meals.map((item, idx) => (
+                                                <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-gray-50 rounded-2xl border border-transparent hover:border-emerald-100 transition-all">
+                                                    <div>
+                                                        <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">{item.meal} • {item.time}</div>
+                                                        <div className="text-sm font-bold text-gray-900">{item.items}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-lg font-black text-gray-900">{item.cal}</div>
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">KCAL</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+
+                                    <div className="space-y-8">
+                                        <section className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <h4 className="text-[10px] font-black text-gray-400 uppercase mb-6 tracking-widest">Hydration Tracker</h4>
+                                                <div className="flex items-end justify-center gap-2 mb-6">
+                                                    <div className="text-5xl font-black text-sky-600">{aiPlan.hydration?.current || 0}</div>
+                                                    <div className="text-xs font-black text-gray-300 mb-2 uppercase">Liters / {aiPlan.hydration?.target || 3.5}L</div>
+                                                </div>
+                                                <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden mb-8">
+                                                    <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: `${Math.min(((aiPlan.hydration?.current || 0) / (aiPlan.hydration?.target || 3.5)) * 100, 100)}%` }}></div>
+                                                </div>
+                                                <button onClick={handleAddWater} className="w-full py-4 bg-sky-50 text-sky-600 rounded-2xl text-[10px] font-black uppercase hover:bg-sky-100 transition-all border border-sky-100">Add 250ml</button>
+                                            </div>
+                                        </section>
+
+                                        <section className="bg-emerald-600 text-white p-8 rounded-[32px] shadow-xl">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-200 mb-4">Daily Balance</h4>
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.protein || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Protein</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.carbs || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Carbs</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-lg font-black">{aiPlan.balance?.fats || "0g"}</div>
+                                                    <div className="text-[8px] font-bold uppercase text-emerald-200">Fats</div>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -999,39 +1211,92 @@ export default function StudentDashboard() {
 
             {/* Modal for Booking QR */}
             {selectedBooking && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-[40px] p-10 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 sm:p-6 overflow-hidden">
+                    <div className="bg-white rounded-[40px] w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in duration-300 max-h-full flex flex-col overflow-hidden">
                         <button 
                             onClick={() => setSelectedBooking(null)}
-                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-white hover:bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md z-20 border border-gray-100"
                         >
                             ✕
                         </button>
                         
-                        <div className="text-center">
-                            <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Identity Hub</div>
-                            <h3 className="text-2xl font-black text-gray-900 mb-8 uppercase tracking-tight">Booking Verifier</h3>
-                            
-                            <div className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 inline-block mb-8">
-                                <img 
-                                    src={selectedBooking.qrCode} 
-                                    alt="Booking QR" 
-                                    className="w-48 h-48 mx-auto"
-                                />
-                            </div>
-                            
-                            <div className="space-y-4 text-left">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Equipment Name</div>
-                                    <div className="text-gray-900 font-bold">{selectedBooking.equipmentName}</div>
+                        <div className="flex flex-col md:flex-row overflow-y-auto w-full h-full max-h-[85vh] custom-scrollbar">
+                            {/* Left Side: QR Code Area */}
+                            <div className="w-full md:w-2/5 bg-gray-50 flex flex-col items-center justify-center p-8 sm:p-12 border-b md:border-b-0 md:border-r border-gray-100 relative">
+                                {/* Decorative elements */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-sky-600/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+                                
+                                <div className="text-center w-full relative z-10">
+                                    <div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5 bg-indigo-50 inline-block px-3 py-1 rounded-full border border-indigo-100/50">
+                                        {selectedBooking.isCourtBooking ? "Court Booking" : "Identity Hub"}
+                                    </div>
+                                    <h3 className="text-3xl font-black text-gray-900 mb-8 uppercase tracking-tight leading-none mt-2">Booking<br/>Verifier</h3>
+                                    
+                                    <div className="bg-white p-5 rounded-[32px] border border-gray-200 shadow-md inline-block mb-6 relative group transform hover:scale-105 transition-all duration-300">
+                                        <div className="absolute -top-3 -right-3 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm shadow-md font-black">✓</div>
+                                        <img 
+                                            src={selectedBooking.qrCode} 
+                                            alt="Booking QR" 
+                                            className="w-48 h-48 mx-auto object-contain"
+                                        />
+                                    </div>
+                                    
+                                    <p className="mt-2 text-xs text-gray-400 font-medium px-4 leading-relaxed">
+                                        Present this verified code to the sports department staff at the front desk.
+                                    </p>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Booking Reference</div>
-                                    <div className="text-[10px] font-mono font-medium text-gray-500 truncate">{selectedBooking._id}</div>
+                            </div>
+
+                            {/* Right Side: Details Area */}
+                            <div className="w-full md:w-3/5 p-8 sm:p-12 flex flex-col justify-center bg-white relative">
+                                <h4 className="text-sm font-black text-gray-300 uppercase tracking-widest mb-6">Reservation Details</h4>
+                                <div className="space-y-4">
+                                    {selectedBooking.isCourtBooking ? (
+                                        <>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Sport Type</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.sportName}</div>
+                                            </div>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Assigned Location</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.courtLocation}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-5 bg-indigo-50 rounded-[24px] border border-indigo-100">
+                                                    <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Reserved Date</div>
+                                                    <div className="text-lg font-black text-indigo-700">{selectedBooking.bookingDate}</div>
+                                                </div>
+                                                <div className="p-5 bg-sky-50 rounded-[24px] border border-sky-100">
+                                                    <div className="text-[10px] text-sky-400 font-bold uppercase tracking-widest mb-1">Arrival Time</div>
+                                                    <div className="text-lg font-black text-sky-700">{selectedBooking.timeSlot}</div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-indigo-100 transition-colors group">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 group-hover:text-indigo-400 transition-colors">Equipment Item</div>
+                                                <div className="text-xl font-black text-gray-900 uppercase tracking-tight">{selectedBooking.equipmentName}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-5 bg-indigo-50 rounded-[24px] border border-indigo-100">
+                                                    <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Reservation Date</div>
+                                                    <div className="text-lg font-black text-indigo-700">{selectedBooking.bookingDate ? new Date(selectedBooking.bookingDate).toLocaleDateString() : "-"}</div>
+                                                </div>
+                                                <div className="p-5 bg-sky-50 rounded-[24px] border border-sky-100">
+                                                    <div className="text-[10px] text-sky-400 font-bold uppercase tracking-widest mb-1">Total Quantity</div>
+                                                    <div className="text-lg font-black text-sky-700">{selectedBooking.quantity || 1} Units</div>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 hover:border-gray-200 transition-colors">
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Official Reference ID</div>
+                                                <div className="text-sm font-mono font-bold text-gray-500 truncate">{selectedBooking._id}</div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                            
-                            <p className="mt-8 text-xs text-gray-400 font-medium">Please present this code to the sports department staff to verify your booking.</p>
                         </div>
                     </div>
                 </div>

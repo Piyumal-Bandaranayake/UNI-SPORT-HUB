@@ -14,7 +14,8 @@ export async function GET(req) {
 
         // Fetch bookings for the logged-in student using their universityId
         const bookings = await EquipmentBooking.find({ 
-            userId: session.user.universityId 
+            userId: session.user.universityId,
+            status: { $ne: "CANCELLED" }
         }).sort({ createdAt: -1 }).lean();
 
         return NextResponse.json(bookings);
