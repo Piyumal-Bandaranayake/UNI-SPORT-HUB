@@ -10,11 +10,11 @@ import AssignSportForm from "@/components/AssignSportForm";
 import EditStudentForm from "@/components/EditStudentForm";
 
 const MENU_ITEMS = [
-    { id: "Overview", icon: "📊", label: "Dashboard" },
-    { id: "Sports", icon: "🏸", label: "Sports" },
-    { id: "Sub-Admins", icon: "👥", label: "Sub-Admins" },
-    { id: "Coaches", icon: "🧢", label: "Coaches" },
-    { id: "Students", icon: "🎓", label: "Students" },
+    { id: "Overview", icon: "", label: "Dashboard" },
+    { id: "Sports", icon: "", label: "Sports" },
+    { id: "Sub-Admins", icon: "", label: "Sub-Admins" },
+    { id: "Coaches", icon: "", label: "Coaches" },
+    { id: "Students", icon: "", label: "Students" },
 ];
 
 export default function AdminDashboard() {
@@ -376,17 +376,17 @@ export default function AdminDashboard() {
 
                 {/* Banner Greeting */}
                 {activeTab === "Overview" && (
-                    <div className="relative mb-10 overflow-hidden rounded-[32px] bg-indigo-600 p-10 shadow-2xl shadow-indigo-100">
+                    <div className="relative mb-10 overflow-hidden rounded-none bg-slate-900 p-10 shadow-2xl shadow-slate-900/40">
                         {/* Abstract background blobs */}
                         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-indigo-400/20 rounded-full blur-2xl"></div>
+                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-slate-500/10 rounded-full blur-2xl"></div>
 
                         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
                             <div className="max-w-md">
                                 <h2 className="text-4xl font-black text-white leading-tight">
                                     Hi, {session?.user?.name?.split(' ')[0]}
                                 </h2>
-                                <p className="mt-4 text-indigo-100 font-medium">
+                                <p className="mt-4 text-slate-200 font-medium">
                                     Ready to manage your university sports hub? <br />
                                     Check latest updates and new student requests below.
                                 </p>
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
                                 <div className="w-56 h-40 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center">
                                     <svg viewBox="0 0 100 100" className="w-32 h-32 opacity-80">
                                         <path fill="white" d="M10,80 Q50,20 90,80 T90,80 Z" />
-                                        <circle cx="50" cy="40" r="10" fill="#EEF2FF" />
+                                        <circle cx="50" cy="40" r="10" fill="#0C4A6E" />
                                     </svg>
                                 </div>
                             </div>
