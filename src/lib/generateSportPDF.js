@@ -1,6 +1,6 @@
 'use client';
 
-export async function generateSportDetailsPDF(sport, approvedMembers, pendingRequests, assignedCoaches) {
+export async function generateSportDetailsPDF(sport, approvedMembers = [], pendingRequests = [], assignedCoaches = []) {
     // Dynamically import jsPDF (client-side only)
     const { default: jsPDF } = await import('jspdf');
     

@@ -33,10 +33,13 @@ export async function GET(req, { params }) {
             status: "PENDING"
         }).populate("studentId", "name universityId universityEmail faculty").lean();
 
-        // Fetch assigned coaches
+        // Fetch assigned coaches by sport name or sport ID for compatibility
         const assignedCoaches = await Coach.find({
-            assignedSports: id,
-            status: "ACTIVE"
+            status: "ACTIVE",
+            $or: [
+                { assignedSports: id },
+                { assignedSports: sport.name }
+            ]
         }, "name email").lean();
 
         return NextResponse.json({
