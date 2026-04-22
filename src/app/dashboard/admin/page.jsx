@@ -719,6 +719,33 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
 }
 
 function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
+    const [downloadingId, setDownloadingId] = useState(null);
+
+    const handleDownloadPDF = async (sportId, sportName) => {
+        setDownloadingId(sportId);
+        try {
+            // Fetch sport details from API
+            const response = await fetch(`/api/admin/sports/${sportId}`);
+            if (!response.ok) throw new Error('Failed to fetch sport details');
+            
+            const { sport, approvedMembers, pendingRequests, assignedCoaches } = await response.json();
+
+            // Import PDF generation function dynamically
+            const { generateSportDetailsPDF } = await import('@/lib/generateSportPDF');
+            
+            // Generate PDF
+            const doc = await generateSportDetailsPDF(sport, approvedMembers, pendingRequests, assignedCoaches);
+            
+            // Download PDF
+            doc.save(`${sportName.replace(/\s+/g, '_')}_Details_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
     return (
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
             <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">University Sports</h2>
@@ -758,13 +785,23 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
                                         ) : <span className="text-[10px] text-gray-300 italic">No assigned staff</span>}
                                     </div>
                                 </div>
-                                <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between">
-                                    <Link
-                                        href={`/sports/${row.id}`}
-                                        className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase hover:bg-indigo-600 hover:text-white transition-all"
-                                    >
-                                        View Profile
-                                    </Link>
+                                <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Link
+                                            href={`/sports/${row.id}`}
+                                            className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase hover:bg-indigo-600 hover:text-white transition-all"
+                                        >
+                                            View Profile
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDownloadPDF(row.id, row.name)}
+                                            disabled={downloadingId === row.id}
+                                            className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase hover:bg-green-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                            title="Download sport details as PDF"
+                                        >
+                                            {downloadingId === row.id ? '⏳' : '📄'} PDF
+                                        </button>
+                                    </div>
                                     <button 
                                         onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
                                         className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${row.status === "ACTIVE" ? "bg-indigo-600" : "bg-gray-300"}`}
