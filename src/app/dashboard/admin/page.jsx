@@ -796,10 +796,10 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
                                         <button
                                             onClick={() => handleDownloadPDF(row.id, row.name)}
                                             disabled={downloadingId === row.id}
-                                            className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase hover:bg-green-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                            className="text-[10px] font-black text-white bg-red-600 px-3 py-1 rounded-full uppercase hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Download sport details as PDF"
                                         >
-                                            {downloadingId === row.id ? '⏳' : '📄'} PDF
+                                            PDF
                                         </button>
                                     </div>
                                     <button 
