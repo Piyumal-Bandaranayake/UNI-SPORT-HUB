@@ -212,14 +212,12 @@ export default function AdminDashboard() {
                         href="/"
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-indigo-300 hover:bg-white/10 hover:text-white transition-all underline decoration-indigo-500/0 hover:decoration-indigo-500/50 underline-offset-4"
                     >
-                        <span className="text-base">🏠</span>
                         Back to Home
                     </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
                     >
-                        <span className="text-base">🚪</span>
                         Logout
                     </button>
                 </div>
