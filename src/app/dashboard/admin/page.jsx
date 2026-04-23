@@ -10,11 +10,11 @@ import AssignSportForm from "@/components/AssignSportForm";
 import EditStudentForm from "@/components/EditStudentForm";
 
 const MENU_ITEMS = [
-    { id: "Overview", icon: "📊", label: "Dashboard" },
-    { id: "Sports", icon: "🏸", label: "Sports" },
-    { id: "Sub-Admins", icon: "👥", label: "Sub-Admins" },
-    { id: "Coaches", icon: "🧢", label: "Coaches" },
-    { id: "Students", icon: "🎓", label: "Students" },
+    { id: "Overview", icon: "", label: "Dashboard" },
+    { id: "Sports", icon: "", label: "Sports" },
+    { id: "Sub-Admins", icon: "", label: "Sub-Admins" },
+    { id: "Coaches", icon: "", label: "Coaches" },
+    { id: "Students", icon: "", label: "Students" },
 ];
 
 export default function AdminDashboard() {
@@ -212,14 +212,12 @@ export default function AdminDashboard() {
                         href="/"
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-indigo-300 hover:bg-white/10 hover:text-white transition-all underline decoration-indigo-500/0 hover:decoration-indigo-500/50 underline-offset-4"
                     >
-                        <span className="text-base">🏠</span>
                         Back to Home
                     </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
                     >
-                        <span className="text-base">🚪</span>
                         Logout
                     </button>
                 </div>
@@ -376,17 +374,17 @@ export default function AdminDashboard() {
 
                 {/* Banner Greeting */}
                 {activeTab === "Overview" && (
-                    <div className="relative mb-10 overflow-hidden rounded-[32px] bg-indigo-600 p-10 shadow-2xl shadow-indigo-100">
+                    <div className="relative mb-10 overflow-hidden rounded-none bg-slate-900 p-10 shadow-2xl shadow-slate-900/40">
                         {/* Abstract background blobs */}
                         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-indigo-400/20 rounded-full blur-2xl"></div>
+                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-slate-500/10 rounded-full blur-2xl"></div>
 
                         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
                             <div className="max-w-md">
                                 <h2 className="text-4xl font-black text-white leading-tight">
                                     Hi, {session?.user?.name?.split(' ')[0]}
                                 </h2>
-                                <p className="mt-4 text-indigo-100 font-medium">
+                                <p className="mt-4 text-slate-200 font-medium">
                                     Ready to manage your university sports hub? <br />
                                     Check latest updates and new student requests below.
                                 </p>
@@ -395,7 +393,7 @@ export default function AdminDashboard() {
                                 <div className="w-56 h-40 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center">
                                     <svg viewBox="0 0 100 100" className="w-32 h-32 opacity-80">
                                         <path fill="white" d="M10,80 Q50,20 90,80 T90,80 Z" />
-                                        <circle cx="50" cy="40" r="10" fill="#EEF2FF" />
+                                        <circle cx="50" cy="40" r="10" fill="#0C4A6E" />
                                     </svg>
                                 </div>
                             </div>
@@ -719,6 +717,33 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
 }
 
 function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
+    const [downloadingId, setDownloadingId] = useState(null);
+
+    const handleDownloadPDF = async (sportId, sportName) => {
+        setDownloadingId(sportId);
+        try {
+            // Fetch sport details from API
+            const response = await fetch(`/api/admin/sports/${sportId}`);
+            if (!response.ok) throw new Error('Failed to fetch sport details');
+            
+            const { sport, approvedMembers, pendingRequests, assignedCoaches } = await response.json();
+
+            // Import PDF generation function dynamically
+            const { generateSportDetailsPDF } = await import('@/lib/generateSportPDF');
+            
+            // Generate PDF
+            const doc = await generateSportDetailsPDF(sport, approvedMembers, pendingRequests, assignedCoaches);
+            
+            // Download PDF
+            doc.save(`${sportName.replace(/\s+/g, '_')}_Details_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
     return (
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
             <h2 className="mb-8 text-xl font-black text-gray-900 underline decoration-indigo-200 underline-offset-8 decoration-4">University Sports</h2>
@@ -758,13 +783,23 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
                                         ) : <span className="text-[10px] text-gray-300 italic">No assigned staff</span>}
                                     </div>
                                 </div>
-                                <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between">
-                                    <Link
-                                        href={`/sports/${row.id}`}
-                                        className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase hover:bg-indigo-600 hover:text-white transition-all"
-                                    >
-                                        View Profile
-                                    </Link>
+                                <div className="pt-4 border-t border-gray-200/50 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Link
+                                            href={`/sports/${row.id}`}
+                                            className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase hover:bg-indigo-600 hover:text-white transition-all"
+                                        >
+                                            View Profile
+                                        </Link>
+                                        <button
+                                            onClick={() => handleDownloadPDF(row.id, row.name)}
+                                            disabled={downloadingId === row.id}
+                                            className="text-[10px] font-black text-white bg-red-600 px-3 py-1 rounded-full uppercase hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Download sport details as PDF"
+                                        >
+                                            PDF
+                                        </button>
+                                    </div>
                                     <button 
                                         onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
                                         className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${row.status === "ACTIVE" ? "bg-indigo-600" : "bg-gray-300"}`}
