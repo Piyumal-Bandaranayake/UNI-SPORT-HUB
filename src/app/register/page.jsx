@@ -185,7 +185,6 @@ export default function RegisterPage() {
                         <div className="space-y-1">
                             <div className="flex justify-between items-end">
                                 <h2 className="text-3xl font-black text-slate-900 tracking-tight">Create Account</h2>
-                                <span className="text-indigo-600 font-bold text-xs cursor-pointer hover:underline transition-all hidden sm:block uppercase tracking-tighter">NEW REGISTRATION</span>
                             </div>
                             <p className="text-slate-500 font-medium text-base">Join the SLIIT sports community.</p>
                         </div>
