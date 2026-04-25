@@ -5,11 +5,11 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
 const MENU_ITEMS = [
-    { id: "Overview", icon: "📊", label: "Dashboard" },
-    { id: "Departments", icon: "🏸", label: "My Departments" },
-    { id: "Schedule", icon: "📅", label: "Training Schedule" },
-    { id: "Exercise", icon: "🤝", label: "Consultations" },
-    { id: "Achievements", icon: "🏆", label: "Achievements" },
+    { id: "Overview", icon: "", label: "Dashboard" },
+    { id: "Departments", icon: "", label: "My Departments" },
+    { id: "Schedule", icon: "", label: "Training Schedule" },
+    { id: "Exercise", icon: "", label: "Consultations" },
+    { id: "Achievements", icon: "", label: "Achievements" },
 ];
 
 export default function CoachDashboard() {
@@ -135,7 +135,7 @@ export default function CoachDashboard() {
 
     const handleCreateSchedule = async (e) => {
         e.preventDefault();
-        
+
         // Final validation check
         const errors = {};
         Object.keys(formData).forEach(key => {
@@ -267,7 +267,7 @@ export default function CoachDashboard() {
     const handleCreateAchievement = async (e) => {
         e.preventDefault();
         setAchievementStatus({ error: '', success: '' });
-        
+
         // Final validation check
         const errors = {};
         Object.keys(achievementData).forEach(key => {
@@ -370,14 +370,12 @@ export default function CoachDashboard() {
                         href="/"
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-emerald-900/60 hover:bg-emerald-100/50 hover:text-emerald-900 transition-all"
                     >
-                        <span className="text-base text-emerald-600/50">🏠</span>
                         Back to Home
                     </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <span className="text-base">🚪</span>
                         Logout
                     </button>
                 </div>
@@ -410,7 +408,7 @@ export default function CoachDashboard() {
                         return (
                             <div className="flex items-center gap-6 relative">
                                 <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
-                                <button 
+                                <button
                                     onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
                                     className="text-gray-400 hover:text-gray-900 transition-colors relative"
                                 >
@@ -419,7 +417,7 @@ export default function CoachDashboard() {
                                         <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>
                                     )}
                                 </button>
-                                
+
                                 {/* Notification Panel */}
                                 {isNotificationPanelOpen && (
                                     <div className="absolute top-10 right-[30%] w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
@@ -449,17 +447,17 @@ export default function CoachDashboard() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600">
-                                {session?.user?.name?.substring(0, 2).toUpperCase()}
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-black text-emerald-600">
+                                        {session?.user?.name?.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-900">Coach {session?.user?.name?.split(' ')[0]}</div>
+                                        <div className="text-[10px] text-gray-400 font-medium">Head of Coaching</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <div className="text-sm font-bold text-gray-900">Coach {session?.user?.name?.split(' ')[0]}</div>
-                                <div className="text-[10px] text-gray-400 font-medium">Head of Coaching</div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
+                        );
+                    })()}
                 </header>
 
                 {/* Greeting Banner */}
@@ -525,14 +523,14 @@ export default function CoachDashboard() {
 
                     {activeTab === "Departments" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                             {sports.map((sport) => (
+                            {sports.map((sport) => (
                                 <div key={sport.id} className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-emerald-100/50 transition-all group">
                                     <div className="h-40 bg-emerald-600 relative overflow-hidden">
-                                         <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
-                                         <div className="absolute bottom-4 left-6 z-10">
-                                             <h3 className="text-2xl font-black text-white uppercase tracking-tight">{sport.name}</h3>
-                                             <span className="text-[10px] font-black bg-white/20 text-white px-2 py-1 rounded-full uppercase tracking-widest backdrop-blur-sm">Official</span>
-                                         </div>
+                                        <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+                                        <div className="absolute bottom-4 left-6 z-10">
+                                            <h3 className="text-2xl font-black text-white uppercase tracking-tight">{sport.name}</h3>
+                                            <span className="text-[10px] font-black bg-white/20 text-white px-2 py-1 rounded-full uppercase tracking-widest backdrop-blur-sm">Official</span>
+                                        </div>
                                     </div>
                                     <div className="p-8">
                                         <div className="grid grid-cols-2 gap-4 mb-8">
@@ -546,7 +544,7 @@ export default function CoachDashboard() {
                                             </div>
                                         </div>
                                         <div className="flex gap-3">
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     setFormData({ ...formData, sportName: sport.name });
                                                     setScheduleErrors({});
@@ -555,7 +553,7 @@ export default function CoachDashboard() {
                                                 className="flex-1 bg-gray-900 text-white py-3 rounded-2xl text-xs font-bold hover:bg-gray-800 transition-all">
                                                 Create Schedule
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setActiveTab("Schedule")}
                                                 className="flex-1 bg-emerald-50 text-emerald-700 py-3 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all">
                                                 Edit schedule
@@ -563,7 +561,7 @@ export default function CoachDashboard() {
                                         </div>
                                     </div>
                                 </div>
-                             ))}
+                            ))}
                         </div>
                     )}
 
@@ -587,7 +585,7 @@ export default function CoachDashboard() {
                                                 <p className="text-sm font-bold text-gray-900">{schedule.activity}</p>
                                                 <p className="text-xs font-medium text-gray-400 mt-1">📍 {schedule.location}</p>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDeleteSchedule(schedule.id)}
                                                 className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">
                                                 Delete
@@ -624,9 +622,8 @@ export default function CoachDashboard() {
                                             <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-emerald-100/20 transition-all border-l-4 border-l-emerald-600 group">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-3">
-                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
-                                                            req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
-                                                        }`}>
+                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                            }`}>
                                                             {req.type} • {req.category}
                                                         </span>
                                                         <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
@@ -640,7 +637,7 @@ export default function CoachDashboard() {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-3">
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
                                                             if (req.category === "ONLINE") {
                                                                 openMeetingLinkModal(req.id, req.type);
@@ -652,7 +649,7 @@ export default function CoachDashboard() {
                                                     >
                                                         Approve
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleUpdateRequestStatus(req.id, "REJECTED", req.type, req.category)}
                                                         className="flex-1 lg:flex-none px-8 py-3.5 bg-rose-50 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all"
                                                     >
@@ -688,9 +685,8 @@ export default function CoachDashboard() {
                                             <div key={req.id} className="p-7 rounded-[32px] border border-gray-100 bg-white flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:shadow-xl hover:shadow-sky-100/20 transition-all border-l-4 border-l-sky-500 group">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-3">
-                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${
-                                                            req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
-                                                        }`}>
+                                                        <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${req.type === "SESSION" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-sky-50 text-sky-600 border-sky-100"
+                                                            }`}>
                                                             {req.type} • {req.category}
                                                         </span>
                                                         <span className="text-[10px] text-gray-300 font-bold tracking-tighter">— {new Date(req.createdAt).toLocaleDateString()}</span>
@@ -727,7 +723,7 @@ export default function CoachDashboard() {
                         <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100">
                             <div className="flex justify-between items-center mb-10">
                                 <h3 className="text-xl font-black text-gray-900 underline decoration-sky-200 underline-offset-8 decoration-4 uppercase tracking-tight">Achievements & Glory</h3>
-                                <button 
+                                <button
                                     onClick={() => setIsAchievementModalOpen(true)}
                                     className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg"
                                 >
@@ -747,7 +743,7 @@ export default function CoachDashboard() {
                                             <div className="h-40 overflow-hidden relative">
                                                 <img src={ach.image} alt="Achievement" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 <div className="absolute top-2 right-2 flex gap-2">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDeleteAchievement(ach.id)}
                                                         className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center shadow-lg hover:bg-rose-500 hover:text-white transition-all text-sm border border-rose-200"
                                                         title="Delete Achievement"
@@ -790,7 +786,7 @@ export default function CoachDashboard() {
                             <form onSubmit={handleCreateSchedule} className="space-y-4">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Sport</label>
-                                    <input 
+                                    <input
                                         type="text"
                                         name="sportName"
                                         readOnly
@@ -804,16 +800,15 @@ export default function CoachDashboard() {
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
                                             {scheduleErrors.date && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.date}</span>}
                                         </div>
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             required
                                             name="date"
                                             min={new Date().toISOString().split('T')[0]}
                                             value={formData.date}
                                             onChange={handleInputChange}
-                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                                scheduleErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                            }`} 
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${scheduleErrors.date ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                                }`}
                                         />
                                     </div>
                                     <div className="flex flex-col">
@@ -821,15 +816,14 @@ export default function CoachDashboard() {
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</label>
                                             {scheduleErrors.time && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.time}</span>}
                                         </div>
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             required
                                             name="time"
                                             value={formData.time}
                                             onChange={handleInputChange}
-                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                                scheduleErrors.time ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                            }`} 
+                                            className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${scheduleErrors.time ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                                }`}
                                         />
                                     </div>
                                 </div>
@@ -838,16 +832,15 @@ export default function CoachDashboard() {
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</label>
                                         {scheduleErrors.location && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.location}</span>}
                                     </div>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         required
                                         name="location"
                                         placeholder="e.g. Main Stadium"
                                         value={formData.location}
                                         onChange={handleInputChange}
-                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                            scheduleErrors.location ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                        }`} 
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${scheduleErrors.location ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`}
                                     />
                                 </div>
                                 <div className="flex flex-col">
@@ -855,27 +848,26 @@ export default function CoachDashboard() {
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Activity</label>
                                         {scheduleErrors.activity && <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter">● {scheduleErrors.activity}</span>}
                                     </div>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         required
                                         name="activity"
                                         placeholder="e.g. Endurance Training"
                                         value={formData.activity}
                                         onChange={handleInputChange}
-                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${
-                                            scheduleErrors.activity ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
-                                        }`} 
+                                        className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none transition-all ${scheduleErrors.activity ? "ring-2 ring-rose-500/20 bg-rose-50/10" : "focus:ring-2 ring-emerald-50"
+                                            }`}
                                     />
                                 </div>
                                 <div className="flex gap-4 pt-4 mt-8 border-t border-gray-50">
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setIsModalOpen(false)}
                                         className="flex-1 px-6 py-4 rounded-2xl font-bold text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 transition-all">
                                         Cancel
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="flex-[2] bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
                                         Create Schedule
                                     </button>
@@ -1002,7 +994,7 @@ export default function CoachDashboard() {
                                                     if (file) {
                                                         const reader = new FileReader();
                                                         reader.onloadend = () => {
-                                                            setAchievementData({...achievementData, image: reader.result});
+                                                            setAchievementData({ ...achievementData, image: reader.result });
                                                             setAchievementErrors(prev => ({ ...prev, image: "" }));
                                                         };
                                                         reader.readAsDataURL(file);
@@ -1047,11 +1039,11 @@ export default function CoachDashboard() {
                             <div className="space-y-6">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Enter online session link</label>
-                                    <input 
-                                        type="url" 
-                                        placeholder="https://meet.google.com/..." 
-                                        value={enteredMeetingLink} 
-                                        onChange={(e) => setEnteredMeetingLink(e.target.value)} 
+                                    <input
+                                        type="url"
+                                        placeholder="https://meet.google.com/..."
+                                        value={enteredMeetingLink}
+                                        onChange={(e) => setEnteredMeetingLink(e.target.value)}
                                         className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 outline-none focus:ring-2 transition-all ${meetingLinkError ? 'ring-2 ring-rose-500' : 'ring-indigo-50'}`}
                                         autoFocus
                                     />

@@ -246,15 +246,15 @@ export default function AdminDashboard() {
                     <div className="flex-1 max-w-xl px-12">
                         <div className="relative group">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">🔍</span>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 placeholder={`Search through ${activeTab.toLowerCase()}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-white border border-gray-100 rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                             />
                             {searchQuery && (
-                                <button 
+                                <button
                                     onClick={() => setSearchQuery("")}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-900 transition-colors font-bold text-[10px]"
                                 >
@@ -265,9 +265,8 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
                         <div className="relative">
-                            <button 
+                            <button
                                 onClick={() => setShowNotifications(!showNotifications)}
                                 className={`text-gray-400 hover:text-gray-900 transition-colors relative ${showNotifications ? 'text-indigo-600' : ''}`}
                             >
@@ -298,7 +297,7 @@ export default function AdminDashboard() {
                                                             <div className="flex-1">
                                                                 <div className="flex items-start justify-between">
                                                                     <div className="text-[11px] font-black text-gray-900 group-hover/noti:text-indigo-600 transition-colors mb-1">{n.title}</div>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             handleDeleteNotification(n.id);
@@ -328,12 +327,16 @@ export default function AdminDashboard() {
                             )}
                         </div>
                         <div className="relative">
-                            <button 
+                            <button
                                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                                 className="flex items-center gap-3 pl-6 border-l border-gray-100 hover:bg-gray-50/50 p-1.5 rounded-2xl transition-all group lg:min-w-[180px]"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center font-black text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                                    {session?.user?.name?.substring(0, 2).toUpperCase()}
+                                <div className="w-10 h-10 rounded-xl overflow-hidden bg-indigo-100 flex items-center justify-center shadow-sm">
+                                    <img
+                                        src="/images/admin-profile.png"
+                                        alt="Admin Profile"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                                 <div className="text-left hidden lg:block flex-1">
                                     <div className="text-xs font-black text-gray-900 leading-tight truncate">{session?.user?.name}</div>
@@ -353,13 +356,13 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                     <div className="p-3">
-                                        <button 
+                                        <button
                                             onClick={() => { setActiveTab("Settings"); setShowProfileMenu(false); }}
                                             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tight text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-transparent hover:border-indigo-100"
                                         >
                                             <span className="text-sm">⚙️</span> General Settings
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => signOut({ callbackUrl: "/login" })}
                                             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tight text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
                                         >
@@ -374,27 +377,28 @@ export default function AdminDashboard() {
 
                 {/* Banner Greeting */}
                 {activeTab === "Overview" && (
-                    <div className="relative mb-10 overflow-hidden rounded-none bg-slate-900 p-10 shadow-2xl shadow-slate-900/40">
+                    <div className="relative mb-10 overflow-hidden rounded-[40px] bg-white p-12 shadow-xl shadow-indigo-100/50 border border-indigo-50">
                         {/* Abstract background blobs */}
-                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-slate-500/10 rounded-full blur-2xl"></div>
+                        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-indigo-50 rounded-full blur-3xl opacity-60"></div>
+                        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-rose-50 rounded-full blur-2xl opacity-40"></div>
 
                         <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
                             <div className="max-w-md">
-                                <h2 className="text-4xl font-black text-white leading-tight">
-                                    Hi, {session?.user?.name?.split(' ')[0]}
+                                <h2 className="text-4xl font-black text-gray-900 leading-tight tracking-tight">
+                                    Hi, <span className="text-indigo-600">{session?.user?.name?.split(' ')[0]}</span>
                                 </h2>
-                                <p className="mt-4 text-slate-200 font-medium">
+                                <p className="mt-4 text-gray-500 font-bold leading-relaxed">
                                     Ready to manage your university sports hub? <br />
                                     Check latest updates and new student requests below.
                                 </p>
                             </div>
                             <div className="hidden lg:block relative">
-                                <div className="w-56 h-40 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center">
-                                    <svg viewBox="0 0 100 100" className="w-32 h-32 opacity-80">
-                                        <path fill="white" d="M10,80 Q50,20 90,80 T90,80 Z" />
-                                        <circle cx="50" cy="40" r="10" fill="#0C4A6E" />
-                                    </svg>
+                                <div className="w-56 h-40 bg-indigo-600 rounded-[32px] flex items-center justify-center shadow-2xl shadow-indigo-200 rotate-3 hover:rotate-0 transition-transform duration-500">
+                                    <img
+                                        src="/images/admin-profile.png"
+                                        alt="Welcome"
+                                        className="w-32 h-32 object-cover rounded-2xl shadow-xl border-4 border-white/20"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -435,8 +439,8 @@ export default function AdminDashboard() {
                                                     <h4 className="font-black text-sm text-gray-900">{sport.name}</h4>
                                                     <p className="text-[10px] text-gray-400 font-medium leading-none mt-1">Managed Sport Department</p>
                                                     <div className="mt-1.5 flex gap-1">
-                                                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                       <span className="text-[9px] font-bold text-emerald-600 uppercase">Live Now</span>
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                        <span className="text-[9px] font-bold text-emerald-600 uppercase">Live Now</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -540,7 +544,7 @@ export default function AdminDashboard() {
                                         </h4>
                                         <div className="p-6 bg-rose-50/50 rounded-[32px] border border-rose-100/50">
                                             <p className="text-[11px] text-rose-800 font-bold mb-4 opacity-80 leading-relaxed uppercase tracking-tight">Access Restricted. Changes here affect platform global stability.</p>
-                                            <button 
+                                            <button
                                                 onClick={() => signOut()}
                                                 className="w-full bg-rose-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-200"
                                             >
@@ -583,7 +587,7 @@ export default function AdminDashboard() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     {/* Backdrop */}
                     <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowPanel(false)} />
-                    
+
                     {/* Modal Content */}
                     <div className="relative w-full max-w-lg bg-white shadow-2xl rounded-[32px] flex flex-col p-8 border border-white/20 transform transition-all animate-in fade-in zoom-in duration-300">
                         <div className="flex items-center justify-between mb-8">
@@ -591,14 +595,14 @@ export default function AdminDashboard() {
                                 <h2 className="text-2xl font-black text-gray-900">{panelTitle}</h2>
                                 <p className="text-xs text-gray-400 font-medium mt-1">Please fill in the details below</p>
                             </div>
-                            <button 
-                                onClick={() => setShowPanel(false)} 
+                            <button
+                                onClick={() => setShowPanel(false)}
                                 className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-all font-bold"
                             >
                                 ✕
                             </button>
                         </div>
-                        
+
                         <div className="flex-1 overflow-y-auto max-h-[70vh] custom-scrollbar pr-2">
                             {panelType === 'ASSIGN' ? (
                                 <AssignSportForm user={editingUser} userType={activeTab === "Coaches" ? "COACH" : "SUB_ADMIN"} allSports={sports} onSuccess={handleSuccess} />
@@ -694,7 +698,7 @@ function AccountTable({ title, rows, isPending, emptyMessage, accentColor, onAss
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex justify-center items-center gap-3">
-                                            <button 
+                                            <button
                                                 onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "BLOCKED" : "ACTIVE")}
                                                 className={`w-10 h-5 rounded-full relative transition-all duration-300 group/toggle ${row.status === "ACTIVE" ? "bg-indigo-600 shadow-inner shadow-indigo-800/20" : "bg-gray-200"}`}
                                                 title={row.status === "ACTIVE" ? "Deactivate Account" : "Activate Account"}
@@ -725,15 +729,15 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
             // Fetch sport details from API
             const response = await fetch(`/api/admin/sports/${sportId}`);
             if (!response.ok) throw new Error('Failed to fetch sport details');
-            
+
             const { sport, approvedMembers, pendingRequests, assignedCoaches } = await response.json();
 
             // Import PDF generation function dynamically
             const { generateSportDetailsPDF } = await import('@/lib/generateSportPDF');
-            
+
             // Generate PDF
             const doc = await generateSportDetailsPDF(sport, approvedMembers, pendingRequests, assignedCoaches);
-            
+
             // Download PDF
             doc.save(`${sportName.replace(/\s+/g, '_')}_Details_${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (error) {
@@ -765,7 +769,7 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
                                     <div>
                                         <h4 className="font-black text-gray-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{row.name}</h4>
                                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${row.status === "ACTIVE" ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
-                                           {row.status} DEPT
+                                            {row.status} DEPT
                                         </span>
                                     </div>
                                 </div>
@@ -800,7 +804,7 @@ function SportsTable({ rows, isPending, onDelete, onToggleStatus }) {
                                             PDF
                                         </button>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
                                         className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${row.status === "ACTIVE" ? "bg-indigo-600" : "bg-gray-300"}`}
                                     >
@@ -853,10 +857,10 @@ function StudentsTable({ rows, isPending, onEdit, onDelete, onToggleStatus }) {
                             </div>
                             <div className="flex items-center gap-8">
                                 <div className="hidden sm:block text-[10px] font-black text-gray-300 uppercase tracking-widest text-right" suppressHydrationWarning>
-                                    Joined Registry<br/> {new Date(row.createdAt).toLocaleDateString()}
+                                    Joined Registry<br /> {new Date(row.createdAt).toLocaleDateString()}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button 
+                                    <button
                                         onClick={() => onToggleStatus(row.id, row.status === "ACTIVE" ? "BLOCKED" : "ACTIVE")}
                                         className={`w-10 h-5 rounded-full relative transition-all duration-300 ${row.status === "ACTIVE" ? "bg-indigo-600 shadow-inner" : "bg-gray-200"}`}
                                         title={row.status === "ACTIVE" ? "Deactivate Student" : "Activate Student"}
