@@ -62,7 +62,7 @@ export default async function Home() {
             ) : (
               <Link
                 href="/dashboard"
-                className="w-full sm:w-auto rounded-xl bg-indigo-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-1 transition-all duration-200"
+                className="w-full sm:w-auto rounded-xl bg-indigo-600 px-8 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-900/50 hover:bg-indigo-700 hover:-translate-y-1 transition-all duration-200"
               >
                 Go to My Dashboard
               </Link>
