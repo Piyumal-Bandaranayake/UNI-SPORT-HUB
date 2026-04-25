@@ -32,6 +32,7 @@
 *.spec.tsx
 /tmp/
 /tests/
+/scripts/test-*.js
 
 # debug
 *.log
@@ -41,8 +42,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -56,7 +55,6 @@ yarn-error.log*
 next-env.d.ts
 
 # IDEs
-.vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 !.vscode/launch.json
@@ -75,3 +73,15 @@ desktop.ini
 # Misc
 .eslintcache
 .cache
+
+# Documentation (generated/temporary)
+*_SUMMARY.md
+*_IMPLEMENTATION.md
+*_COMPARISON.md
+*_FIX*.md
+*_FEATURE.md
+TEST_*.md
+CHATBOT_*.md
+BEFORE_AFTER_*.md
+RESET_*.md
+config.bat
