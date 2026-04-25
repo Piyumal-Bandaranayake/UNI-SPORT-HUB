@@ -36,7 +36,7 @@ export default function Navbar() {
             <div className="mx-auto flex h-full w-full items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Link href="/" className="flex items-center space-x-3 group">
-                        <img src="/images/unisporthub_logo.png" alt="UniSportHub" className={`w-10 h-10 object-contain transition-all duration-300 ${isScrolled ? "scale-90" : "scale-110"}`} />
+
                         <span className={`text-2xl font-black tracking-tighter transition-colors duration-300 ${isScrolled ? "text-gray-900" : "text-white drop-shadow-md"}`}>
                             Uni<span className="text-indigo-500">Sport</span>Hub
                         </span>
