@@ -5,9 +5,9 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
 const MENU_ITEMS = [
-    { id: "Overview", icon: "📊", label: "Overview" },
-    { id: "Management", icon: "🏢", label: "Dept Management" },
-    { id: "Equipment", icon: "🏸", label: "Equipment Tracking" },
+    { id: "Overview", icon: "", label: "Overview" },
+    { id: "Management", icon: "", label: "Dept Management" },
+    { id: "Equipment", icon: "", label: "Equipment Tracking" },
 ];
 
 export default function SubAdminDashboard() {
@@ -149,14 +149,12 @@ export default function SubAdminDashboard() {
                         href="/"
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-orange-900/60 hover:bg-orange-100/50 hover:text-orange-900 transition-all"
                     >
-                        <span className="text-base text-orange-600/50">🏠</span>
                         Back to Home
                     </Link>
                     <button
                         onClick={() => signOut({ callbackUrl: "/login" })}
                         className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <span className="text-base">🚪</span>
                         Logout
                     </button>
                 </div>
@@ -174,7 +172,6 @@ export default function SubAdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
                         <div className="relative">
                             <button 
                                 onClick={() => setShowNotifications(!showNotifications)}
@@ -360,56 +357,51 @@ export default function SubAdminDashboard() {
 
                     {activeTab === "Management" && (
                          <div className="space-y-8">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-2xl font-black text-gray-900">Department Management</h3>
-                                    <p className="text-gray-400 text-sm font-medium mt-1">Select a department to manage its full operations and inventory.</p>
-                                </div>
-                            </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {sports.length > 0 ? sports.map((sport) => (
-                                    <div key={sport.id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-sky-100/30 transition-all group overflow-hidden relative">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div key={sport.id} className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-sky-100/20 transition-all group overflow-hidden relative">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-sky-50 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"></div>
                                         
-                                        <div className="relative z-10 flex items-start justify-between mb-8">
-                                            <div className="w-16 h-16 bg-sky-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-sky-600 group-hover:text-white transition-all duration-300 shadow-sm">
+                                        <div className="relative z-10 flex items-start justify-between mb-6">
+                                            <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-2xl group-hover:bg-sky-600 group-hover:text-white transition-all duration-300 shadow-sm">
                                                 {sport.name.toLowerCase().includes("badminton") ? "🏸" : 
                                                  sport.name.toLowerCase().includes("cricket") ? "🏏" : 
                                                  sport.name.toLowerCase().includes("football") ? "⚽" : "🏅"}
                                             </div>
-                                            <span className="bg-sky-50 text-sky-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-sky-100">
+                                            <span className="bg-sky-50 text-sky-600 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-sky-100">
                                                 Active Dep
                                             </span>
                                         </div>
 
-                                        <div className="relative z-10 space-y-2 mb-8">
-                                            <h4 className="text-2xl font-black text-gray-900 uppercase tracking-tight leading-none">{sport.name}</h4>
-                                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sport Admin Control</p>
+                                        <div className="relative z-10 space-y-1 mb-6">
+                                            <h4 className="text-xl font-black text-gray-900 uppercase tracking-tight leading-none">{sport.name}</h4>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sport Admin Control</p>
                                         </div>
 
-                                        <div className="relative z-10 grid grid-cols-2 gap-4 mb-8">
-                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center text-center">
-                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Items</div>
-                                                <div className="text-lg font-black text-gray-900">{inventoryData[sport.id]?.length || 0}</div>
+                                        <div className="relative z-10 grid grid-cols-2 gap-3 mb-6">
+                                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center text-center">
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Items</div>
+                                                <div className="text-base font-black text-gray-900">{inventoryData[sport.id]?.length || 0}</div>
                                             </div>
-                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center text-center">
-                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Status</div>
-                                                <div className="text-[10px] font-black text-emerald-600 uppercase">Healthy</div>
+                                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center text-center">
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Status</div>
+                                                <div className="text-[9px] font-black text-emerald-600 uppercase">Healthy</div>
                                             </div>
                                         </div>
 
-                                        <div className="relative z-10 space-y-3">
+                                        <div className="relative z-10 space-y-2">
                                             <Link 
                                                 href={`/dashboard/sub-admin/sports/${sport.id}`}
-                                                className="w-full bg-gray-900 text-white py-4 rounded-2xl text-xs font-black uppercase text-center block hover:bg-sky-600 hover:-translate-y-1 transition-all shadow-xl active:scale-95"
+                                                className="w-full bg-gray-900 text-white py-3 rounded-xl text-[11px] font-black uppercase text-center block hover:bg-sky-600 hover:-translate-y-0.5 transition-all shadow-lg active:scale-95"
                                             >
                                                 Open Console
                                             </Link>
                                             <Link
                                                 href={`/sports/${sport.id}`}
                                                 target="_blank"
-                                                className="w-full bg-white border border-gray-100 py-4 rounded-2xl text-xs font-black uppercase text-gray-400 text-center block hover:bg-gray-50 hover:text-gray-900 transition-all"
+                                                className="w-full bg-white border border-gray-100 py-3 rounded-xl text-[11px] font-black uppercase text-gray-400 text-center block hover:bg-gray-50 hover:text-gray-900 transition-all"
                                             >
                                                 Public View
                                             </Link>
