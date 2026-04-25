@@ -32,6 +32,7 @@
 *.spec.tsx
 /tmp/
 /tests/
+/scripts/test-*.js
 
 # debug
 *.log
@@ -75,3 +76,14 @@ desktop.ini
 # Misc
 .eslintcache
 .cache
+
+# Documentation (generated/temporary)
+*_SUMMARY.md
+*_IMPLEMENTATION.md
+*_COMPARISON.md
+*_FIX*.md
+*_FEATURE.md
+TEST_*.md
+CHATBOT_*.md
+BEFORE_AFTER_*.md
+RESET_*.md
