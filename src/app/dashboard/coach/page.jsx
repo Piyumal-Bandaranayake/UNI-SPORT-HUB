@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { jsPDF } from "jspdf";
 
 const MENU_ITEMS = [
     { id: "Overview", icon: "", label: "Dashboard" },
@@ -245,6 +246,81 @@ export default function CoachDashboard() {
         }
     };
 
+    const downloadPDF = () => {
+        const doc = new jsPDF();
+        
+        // Add Title
+        doc.setFontSize(22);
+        doc.setTextColor(17, 24, 39); // Gray-900
+        doc.text("Approved Schedules Report", 14, 25);
+        
+        // Add Date
+        doc.setFontSize(10);
+        doc.setTextColor(107, 114, 128); // Gray-400
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 32);
+        
+        // Add Horizontal Line
+        doc.setDrawColor(229, 231, 235); // Gray-200
+        doc.setLineWidth(0.5);
+        doc.line(14, 38, 196, 38);
+        
+        let yPos = 50;
+        
+        if (approvedRequests.length === 0) {
+            doc.setFontSize(12);
+            doc.text("No approved schedules found.", 14, yPos);
+        } else {
+            approvedRequests.forEach((req, index) => {
+                // Check if we need a new page
+                if (yPos > 260) {
+                    doc.addPage();
+                    yPos = 25;
+                }
+                
+                // Student Name
+                doc.setFontSize(14);
+                doc.setTextColor(17, 24, 39);
+                doc.setFont("helvetica", "bold");
+                doc.text(`${index + 1}. ${req.studentName}`, 14, yPos);
+                
+                yPos += 8;
+                
+                // Details
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(55, 65, 81); // Gray-700
+                
+                doc.text(`Type: ${req.type}`, 14, yPos);
+                doc.text(`Category: ${req.category}`, 80, yPos);
+                yPos += 6;
+                
+                doc.text(`Date: ${new Date(req.createdAt).toLocaleDateString()}`, 14, yPos);
+                doc.text(`Contact: ${req.contactNumber}`, 80, yPos);
+                yPos += 6;
+                
+                if (req.meetingLink) {
+                    doc.setTextColor(5, 150, 105); // Emerald-600
+                    doc.text(`Meeting Link: ${req.meetingLink}`, 14, yPos);
+                    doc.setTextColor(55, 65, 81);
+                    yPos += 6;
+                }
+                
+                // Detail text with wrapping
+                doc.setFont("helvetica", "italic");
+                const splitDetail = doc.splitTextToSize(`Detail: "${req.detail}"`, 170);
+                doc.text(splitDetail, 14, yPos);
+                
+                yPos += (splitDetail.length * 5) + 12;
+                
+                // Divider
+                doc.setDrawColor(243, 244, 246); // Gray-50
+                doc.line(14, yPos - 6, 196, yPos - 6);
+            });
+        }
+        
+        doc.save("Approved_Schedules_Report.pdf");
+    };
+
     const pendingRequests = exerciseRequests.filter(req => req.status === "PENDING");
     const approvedRequests = exerciseRequests.filter(req => req.status === "ACCEPTED");
 
@@ -407,7 +483,6 @@ export default function CoachDashboard() {
 
                         return (
                             <div className="flex items-center gap-6 relative">
-                                <button className="text-gray-400 hover:text-gray-900 transition-colors">✉️</button>
                                 <button
                                     onClick={() => setIsNotificationPanelOpen(!isNotificationPanelOpen)}
                                     className="text-gray-400 hover:text-gray-900 transition-colors relative"
@@ -669,8 +744,18 @@ export default function CoachDashboard() {
                                         <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase">Approved Schedules</h3>
                                         <p className="text-xs text-gray-400 font-medium">Your upcoming confirmed sessions and plans.</p>
                                     </div>
-                                    <div className="bg-sky-50 text-sky-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-sky-100">
-                                        {approvedRequests.length} Approved
+                                    <div className="flex items-center gap-3">
+                                        {approvedRequests.length > 0 && (
+                                            <button
+                                                onClick={downloadPDF}
+                                                className="bg-gray-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-sm"
+                                            >
+                                                📥 Download PDF
+                                            </button>
+                                        )}
+                                        <div className="bg-sky-50 text-sky-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-sky-100">
+                                            {approvedRequests.length} Approved
+                                        </div>
                                     </div>
                                 </div>
                                 {/* Approved requests mapping */}
